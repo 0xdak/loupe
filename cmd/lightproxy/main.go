@@ -63,6 +63,10 @@ func runProxy(args []string) int {
 	noMITM := fs.Bool("no-mitm", false, "tunnel HTTPS without decrypting it")
 	caDir := fs.String("ca-dir", defaultCADir(), "directory holding the CA certificate and keys")
 	insecure := fs.Bool("insecure-upstream", false, "do not verify upstream server certificates (for self-signed test servers)")
+	aiProvider := fs.String("ai", "auto", "AI backend for the assistant: auto, claude, ollama or openai")
+	aiModel := fs.String("ai-model", "", "AI model name for ollama/openai, e.g. qwen2.5 or qwen-plus")
+	aiURL := fs.String("ai-url", "", "AI base URL (ollama: http://localhost:11434; openai-compatible: a .../v1 base)")
+	aiKey := fs.String("ai-key", "", "API key for an openai-compatible endpoint (or set OPENAI_API_KEY / DASHSCOPE_API_KEY)")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -138,11 +142,11 @@ func runProxy(args []string) int {
 	servers := []*http.Server{{Handler: p, ReadHeaderTimeout: 30 * time.Second, ErrorLog: errLog}}
 	listeners := []net.Listener{ln}
 
-	// Ask Claude uses the local Claude Code CLI when it is installed.
+	// The assistant uses Claude Code, Ollama or an OpenAI-compatible endpoint.
 	var chatter ui.Chatter
-	var chatterErr string
-	if a, err := assist.Find(); err == nil {
-		chatter = a
+	var chatterErr, chatterName string
+	if a, err := assist.New(assist.Config{Provider: *aiProvider, Model: *aiModel, URL: *aiURL, APIKey: *aiKey}); err == nil {
+		chatter, chatterName = a, a.Name()
 	} else {
 		chatterErr = err.Error()
 	}
@@ -162,7 +166,7 @@ func runProxy(args []string) int {
 				ProxyAddr: proxyAddr, OpenBrowser: startBrowser, CACert: caPEM,
 				Intercept: queue, Scope: sc, Sender: p, Rules: engine,
 				Intruder: intruder.NewManager(p), WebSockets: wsStore,
-				Assistant: chatter, AssistantErr: chatterErr,
+				Assistant: chatter, AssistantErr: chatterErr, AssistantName: chatterName,
 			}),
 			ReadHeaderTimeout: 30 * time.Second,
 			ErrorLog:          errLog,

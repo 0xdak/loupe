@@ -405,7 +405,7 @@ function flowMenu(e, f, getDetail) {
   const inScope = app.scope.includes(host);
   const http = f.method !== "CONNECT";
   showMenu(e, [
-    { label: "✦ Ask Claude", key: "Ctrl+J", disabled: !http || !f.id, action: () => askAboutFlow(f.id) },
+    { label: "✦ Ask " + aiName(), key: "Ctrl+J", disabled: !http || !f.id, action: () => askAboutFlow(f.id) },
     "-",
     { label: "Send to Repeater", key: "Ctrl+R", disabled: !http, action: async () => { const d = await getDetail(); sendToRepeater(targetURL(d), bytesToText(b64ToBytes(d.request))); } },
     { label: "Send to Intruder", key: "Ctrl+I", disabled: !http, action: async () => { const d = await getDetail(); sendToIntruder(targetURL(d), bytesToText(b64ToBytes(d.request))); } },

@@ -86,7 +86,7 @@ function renderHistDetail() {
   if (d.note) item("Note:", d.note);
   if (d.error) item("Error:", d.error, "err");
   info.append(h("span", { class: "spacer" }),
-    d.method !== "CONNECT" ? h("button", { class: "btn ask", title: "Talk to Claude about this request (Ctrl+J)", onclick: () => askAboutFlow(d.id) }, "Ask Claude") : null);
+    d.method !== "CONNECT" ? h("button", { class: "btn ask", title: `Talk to ${aiName()} about this request (Ctrl+J)`, onclick: () => askAboutFlow(d.id) }, "Ask " + aiName()) : null);
   if (d.edited) {
     info.append(
       h("button", { class: "btn" + (hist.showOriginal ? " on" : ""), onclick: () => { hist.showOriginal = true; renderHistDetail(); } }, "Original"),

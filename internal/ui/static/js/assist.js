@@ -36,6 +36,20 @@ function loadChats() {
 }
 loadChats();
 
+// aiName is the active model's short label (e.g. "Claude", "Ollama · qwen2.5").
+function aiName() { return (app.info && app.info.assistantName) || "Claude"; }
+// applyAiName updates the fixed labels once /api/info has loaded.
+function applyAiName() {
+  const n = aiName();
+  const top = $("askTop");
+  if (top && top.firstChild) { top.firstChild.nodeValue = "✦ " + n; top.title = n + " conversations"; }
+  const title = $("asTitle"); if (title) title.textContent = "Ask " + n;
+  for (const id of ["icAsk", "repAsk"]) {
+    const b = $(id);
+    if (b) { b.textContent = "Ask " + n; b.title = "Talk to " + n + " about this message"; }
+  }
+}
+
 // messageText turns base64 message bytes into text for Claude, preferring the
 // decoded (decompressed) version and replacing binary bodies with a note.
 function messageText(b64, decodedB64) {
@@ -90,12 +104,12 @@ function renderAsk() {
   const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
   box.textContent = "";
   if (!app.info.assistant) {
-    box.append(h("div", { class: "as-note err" }, app.info.assistantError || "Ask Claude is not available."));
+    box.append(h("div", { class: "as-note err" }, app.info.assistantError || `Ask ${aiName()} is not available.`));
   } else if (!chat) {
-    box.append(h("div", { class: "as-note" }, "Open a request and click Ask Claude, or pick a conversation from Chats."));
+    box.append(h("div", { class: "as-note" }, `Open a request and click Ask ${aiName()}, or pick a conversation from Chats.`));
   } else if (!chat.history.length) {
     box.append(h("div", { class: "as-note" },
-      "Ask anything about this request and its response. Claude sees the request and response shown here, and cannot run tools or change anything."));
+      `Ask anything about this request and its response. ${aiName()} sees the request and response shown here, and cannot run tools or change anything.`));
   }
   if (chat) for (const m of chat.history) box.append(bubble(m, chat.ctx));
   const chips = $("asChips");
@@ -111,7 +125,7 @@ function renderChatList() {
   const box = $("asMsgs");
   box.textContent = "";
   const chats = [...ask.chats.values()].filter((c) => c.history.length || c.abort).sort((a, b) => b.updated - a.updated);
-  if (!chats.length) { box.append(h("div", { class: "as-note" }, "No conversations yet. Open a request and click Ask Claude.")); return; }
+  if (!chats.length) { box.append(h("div", { class: "as-note" }, `No conversations yet. Open a request and click Ask ${aiName()}.`)); return; }
   for (const c of chats) {
     const last = [...c.history].reverse().find((m) => m.role === "assistant" && m.text) || c.history[c.history.length - 1];
     const snippet = last ? (last.label || last.text).replace(/```[\s\S]*?(```|$)/g, "[code]").replace(/\s+/g, " ").slice(0, 140) : "";
@@ -194,7 +208,7 @@ async function sendAsk(text, label) {
     chat.updated = Date.now();
     saveChats();
     if (visible()) renderAsk(); else updateChatsButton();
-    if (!visible() && !answer.error) toast("Claude answered: " + chat.ctx.title.slice(0, 80));
+    if (!visible() && !answer.error) toast(aiName() + " answered: " + chat.ctx.title.slice(0, 80));
   }
 }
 
@@ -219,7 +233,7 @@ function codeBlock(code, lang, ctx) {
   const tools = h("div", { class: "as-tools" },
     h("span", { class: "muted" }, lang || (isRequest ? "http" : "")),
     h("span", { class: "spacer" }),
-    isRequest ? h("button", { class: "go", title: "Send this request through the proxy and show Claude the response here",
+    isRequest ? h("button", { class: "go", title: `Send this request through the proxy and show ${aiName()} the response here`,
       onclick: (e) => sendAndReply(ctx, raw(), e.currentTarget) }, "Send & show response") : null,
     held ? h("button", { class: "go", title: "Forward the intercepted request with this edit instead of the original",
       onclick: () => forwardHeldEdit(ctx, raw()) }, "Forward this instead") : null,
@@ -255,7 +269,7 @@ async function forwardHeldEdit(ctx, raw) {
   const id = Number(ctx.key.slice("held:".length));
   try {
     await api("POST", "/api/intercept/" + id, { action: "forward", raw });
-    toast("Forwarded Claude's version of the held request.");
+    toast(`Forwarded ${aiName()}'s version of the held request.`);
   } catch (err) {
     toast("Could not forward: " + err.message, true);
   }

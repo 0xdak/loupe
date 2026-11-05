@@ -47,10 +47,12 @@ type Options struct {
 	Rules      *rules.Engine     // match and replace
 	Intruder   *intruder.Manager // nil disables Intruder
 	WebSockets *websocket.Store  // nil disables WebSockets history
-	// Assistant answers questions about an exchange. Nil disables Ask Claude;
-	// AssistantErr then says why.
-	Assistant    Chatter
-	AssistantErr string
+	// Assistant answers questions about an exchange. Nil disables the
+	// assistant; AssistantErr then says why. AssistantName labels the active
+	// model in the interface (e.g. "Claude", "Ollama · qwen2.5").
+	Assistant     Chatter
+	AssistantErr  string
+	AssistantName string
 }
 
 // Chatter talks to Claude about an HTTP exchange.
@@ -250,6 +252,7 @@ func (s *Server) info(w http.ResponseWriter, r *http.Request) {
 		"proxy": s.opts.ProxyAddr, "browser": s.opts.OpenBrowser != nil, "mitm": s.opts.CACert != nil,
 		"intruder": s.opts.Intruder != nil, "websockets": s.opts.WebSockets != nil, "rules": s.opts.Rules != nil,
 		"assistant": s.opts.Assistant != nil, "assistantError": s.opts.AssistantErr,
+		"assistantName": s.opts.AssistantName,
 	})
 }
 
@@ -588,7 +591,7 @@ func (s *Server) assist(w http.ResponseWriter, r *http.Request) {
 	if s.opts.Assistant == nil {
 		msg := s.opts.AssistantErr
 		if msg == "" {
-			msg = "Ask Claude is not available"
+			msg = "the AI assistant is not available"
 		}
 		http.Error(w, msg, http.StatusNotImplemented)
 		return

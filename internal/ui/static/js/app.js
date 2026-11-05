@@ -47,6 +47,7 @@ $("themeBtn").addEventListener("click", () => {
   try {
     const [info, scope] = await Promise.all([getJSON("/api/info"), getJSON("/api/scope")]);
     app.info = info;
+    applyAiName();
     for (const el of [$("proxyAddr"), ...$$(".proxyAddr")]) el.textContent = info.proxy;
     for (const b of $$(".browserBtn")) b.hidden = !info.browser;
     $("caSection").hidden = !info.mitm;

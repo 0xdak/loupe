@@ -216,7 +216,7 @@ function openAttack(id) {
     onMenu: (e, r) => showMenu(e, [
       { label: "Send to Repeater", action: async () => { const d = await getJSON(`/api/intruder/${id}/results/${r.n}`); sendToRepeater(a.status.target, bytesToText(b64ToBytes(d.request))); } },
       { label: "Copy payload", action: () => copyText(r.payloads.join(", "), "Payload") },
-      { label: "✦ Ask Claude", action: async () => {
+      { label: "✦ Ask " + aiName(), action: async () => {
         const d = await getJSON(`/api/intruder/${id}/results/${r.n}`);
         askClaude({ key: `int:${id}:${r.n}`, title: `Attack ${id} request ${r.n} · payload ${r.payloads.join(", ")}`, target: a.status.target,
           note: `Intruder attack ${id}, request ${r.n}, payload(s): ${r.payloads.join(", ")}`,

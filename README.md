@@ -28,6 +28,10 @@ lightproxy history -id 12        # print the full request and response of flow 1
 | `-history` | `history.jsonl` | History file (one JSON flow per line) |
 | `-max-body` | 10 MiB | Bytes of each body to record. Traffic is always forwarded in full. |
 | `-quiet` | off | Do not print each flow |
+| `-ai` | `auto` | AI backend for the assistant: `auto`, `claude`, `ollama` or `openai` |
+| `-ai-model` | — | Model name for `ollama`/`openai`, e.g. `qwen2.5` or `qwen-plus` |
+| `-ai-url` | — | Base URL (`ollama`: `http://localhost:11434`; `openai`: a `.../v1` base) |
+| `-ai-key` | — | API key for an `openai`-compatible endpoint (or set `OPENAI_API_KEY` / `DASHSCOPE_API_KEY`) |
 
 ## Interface
 
@@ -56,13 +60,18 @@ The tabs follow Burp Suite's layout and names.
   - Hashes: MD5 and the SHA family.
   - **Smart decode** picks the decoding automatically.
 
-- **Ask Claude**: talk to Claude about any request. It opens from the **Ask Claude** button in HTTP history, Repeater and Intercept, or from the right-click menu (Ctrl+J).
-  - Claude sees the request and the decoded response. Quick prompts cover explaining the request, finding security issues, suggesting test requests and explaining the response.
-  - Requests Claude proposes come with **Send & show response** (sends the request through the proxy and feeds the real response back into the conversation, so you can iterate test-by-test with one click per request), **Repeater**, **Intruder** and **Copy** buttons. In Intercept, a proposed request also gets **Forward this instead**, which forwards the held message with Claude's edit.
-  - Each request has its own conversation. **☰ Chats** in the panel, or **✦ Claude** in the top bar, lists them all, and they keep answering in the background while you open others.
+- **AI assistant**: talk to an AI model about any request. It opens from the **Ask …** button in HTTP history, Repeater and Intercept, or from the right-click menu (Ctrl+J). The buttons and the top-bar **✦** tab show the active model's name.
+  - The model sees the request and the decoded response. Quick prompts cover explaining the request, finding security issues, suggesting test requests and explaining the response.
+  - Requests the model proposes come with **Send & show response** (sends the request through the proxy and feeds the real response back into the conversation, so you can iterate test-by-test with one click per request), **Repeater**, **Intruder** and **Copy** buttons. In Intercept, a proposed request also gets **Forward this instead**, which forwards the held message with the model's edit.
+  - Each request has its own conversation. **☰ Chats** in the panel, or the **✦** tab in the top bar, lists them all, and they keep answering in the background while you open others.
   - The 60 most recent conversations are kept in this browser across reloads.
-  - It runs your installed Claude Code CLI (`claude`) with every tool disabled, so no API key is needed and Claude cannot run anything on your machine.
   - Messages are capped at 100 KB each before being sent; the cut is marked.
+
+  Pick the backend with `-ai`:
+  - **`auto`** (default): uses the Claude Code CLI if it is installed, otherwise a running Ollama server.
+  - **`claude`**: your installed Claude Code CLI (`claude`), run with every tool disabled, so no API key is needed and it cannot run anything on your machine.
+  - **`ollama`**: a local [Ollama](https://ollama.com) server — open models such as Qwen or Llama, all on your machine. Pull one first (`ollama pull qwen2.5`), then run `lightproxy -ai ollama -ai-model qwen2.5`. With no `-ai-model`, auto mode prefers an installed Qwen model.
+  - **`openai`**: any OpenAI-compatible chat endpoint — Qwen's cloud API (DashScope), LM Studio, vLLM, llama.cpp's server. For example, Qwen cloud: `lightproxy -ai openai -ai-url https://dashscope-intl.aliyuncs.com/compatible-mode/v1 -ai-model qwen-plus -ai-key $DASHSCOPE_API_KEY`.
 
 The theme follows the system setting. The **Theme** button switches between light and dark.
 
@@ -116,7 +125,7 @@ internal/scope      scope patterns and the browser noise list
 internal/ca         local CA and per-site certificates
 internal/ui         embedded web interface, JSON API and live event stream
 internal/launch     opening URLs and starting the proxied browser
-internal/assist     Ask Claude through the local Claude Code CLI
+internal/assist     AI assistant: Claude Code CLI, Ollama or an OpenAI-compatible endpoint
 ```
 
 ## Known limitations
