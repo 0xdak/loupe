@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lightproxy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%239B2D43'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">lightproxy</div>
+  <nav class="tabs" id="mainTabs">
+    <button data-tab="target">Target</button>
+    <button data-tab="proxy" class="active">Proxy<span class="count" id="proxyCount"></span></button>
+    <button data-tab="intruder">Intruder</button>
+    <button data-tab="repeater">Repeater</button>
+    <button data-tab="decoder">Decoder</button>
+  </nav>
+  <button class="claude-tab" id="askTop" title="Claude conversations">✦ Claude<span class="count"></span></button>
+  <div class="spacer"></div>
+  <div class="status">
+    <span id="live" class="live">connecting</span>
+    <span class="muted small">Proxy listener <code id="proxyAddr">…</code></span>
+    <button class="btn small" id="themeBtn" title="Colour theme">Theme: Auto</button>
+  </div>
+</header>
+
+<main>
+<!-- ═════════════ Target ═════════════ -->
+<section class="tab" id="tab-target" hidden>
+  <nav class="tabs subtabs">
+    <button data-sub="t-sitemap" class="active">Site map</button>
+    <button data-sub="t-scope">Scope</button>
+  </nav>
+  <div class="sub" id="t-sitemap">
+    <div class="tree" id="smTree"></div>
+    <div class="vsplit"></div>
+    <div class="sm-right">
+      <div class="filterbar">
+        <label class="check"><input type="checkbox" id="smScopeOnly"> Show only in-scope items</label>
+        <label class="check"><input type="checkbox" id="smHideNoise" checked> Hide browser noise</label>
+        <div class="spacer"></div><span class="muted" id="smCount"></span>
+      </div>
+      <div class="grid-wrap">
+        <table class="grid" id="smTable">
+          <colgroup><col style="width:56px"><col style="width:70px"><col><col style="width:70px"><col style="width:80px"><col style="width:80px"></colgroup>
+          <thead><tr><th class="sort" data-key="id">#</th><th class="sort" data-key="method">Method</th><th class="sort" data-key="url">URL</th>
+            <th class="sort" data-key="status">Status</th><th class="sort r" data-key="respSize">Length</th><th class="sort" data-key="mime">MIME type</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="hsplit"></div>
+      <div class="pair" id="smPair"></div>
+    </div>
+  </div>
+  <div class="sub page" id="t-scope" hidden>
+    <div class="section">
+      <h3>Target scope</h3>
+      <p>Define the hosts you are testing. Intercept only holds in-scope items, and history and the site map can be limited to them.
+        With an empty scope, everything is in scope.</p>
+      <p><code>example.com</code> matches that host only. <code>*.example.com</code> matches example.com and all of its subdomains. Pasted URLs are reduced to their host.</p>
+      <div class="row"><input type="text" id="scopeNew" placeholder="example.com or *.example.com" style="width:320px"><button class="btn primary" id="scopeAdd">Add</button>
+        <button class="btn" id="scopePaste" title="Add every line of the clipboard">Paste URLs</button><button class="btn" id="scopeClear">Clear</button></div>
+      <table class="grid" style="max-width:600px;margin-top:8px">
+        <colgroup><col><col style="width:90px"></colgroup>
+        <thead><tr><th>Host or pattern</th><th></th></tr></thead>
+        <tbody id="scopeRows"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ Proxy ═════════════ -->
+<section class="tab" id="tab-proxy">
+  <nav class="tabs subtabs">
+    <button data-sub="p-intercept">Intercept<span class="count" id="icCountTab"></span></button>
+    <button data-sub="p-history" class="active">HTTP history</button>
+    <button data-sub="p-ws">WebSockets history</button>
+    <button data-sub="p-rules">Match and replace</button>
+    <button data-sub="p-settings">Proxy settings</button>
+  </nav>
+
+  <!-- Intercept -->
+  <div class="sub" id="p-intercept" hidden>
+    <div class="toolbar">
+      <button id="icToggle" title="Hold requests before they are sent">Intercept is off</button>
+      <button id="icForward" disabled title="Ctrl+F">Forward</button>
+      <button id="icDrop" disabled title="Ctrl+D">Drop</button>
+      <button id="icAll" disabled title="Forward every held message unchanged">Forward all</button>
+      <span class="sep"></span>
+      <button id="icRep" disabled title="Ctrl+R">Send to Repeater</button>
+      <button id="icInt" disabled title="Ctrl+I">Send to Intruder</button>
+      <button id="icAsk" class="ask" disabled title="Talk to Claude about this message">Ask Claude</button>
+      <div class="spacer"></div>
+      <label class="check"><input type="checkbox" id="icResponses"> Intercept responses</label>
+      <label class="check" title="Let images, CSS, JavaScript and fonts pass"><input type="checkbox" id="icSkipStatic" checked> Skip static files</label>
+      <button class="primary browserBtn" hidden>Open browser</button>
+    </div>
+    <div class="grid-wrap queue">
+      <table class="grid" id="icTable">
+        <colgroup><col style="width:80px"><col style="width:115px"><col style="width:110px"><col style="width:70px"><col><col style="width:60px"><col style="width:70px"></colgroup>
+        <thead><tr><th>Time</th><th>Type</th><th>Direction</th><th>Method</th><th>URL</th><th>Status</th><th class="r">Length</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="infobar" id="icInfo"></div>
+    <div id="icEditor"></div>
+  </div>
+
+  <!-- HTTP history -->
+  <div class="sub" id="p-history">
+    <div class="filterbar">
+      <span class="muted">Filter:</span>
+      <input type="search" id="hFilter" placeholder="Search host, URL, method, status…" autocomplete="off">
+      <label class="check"><input type="checkbox" id="hScopeOnly"> In-scope items only</label>
+      <label class="check" title="Updates, SmartScreen, new tab page and other requests the browser makes on its own"><input type="checkbox" id="hHideNoise" checked> Hide browser noise</label>
+      <label class="check"><input type="checkbox" id="hHideStatic" checked> Hide CSS, images and binary</label>
+      <div class="spacer"></div>
+      <span class="muted" id="hCount"></span>
+      <button id="hClear" title="Clear the list (the history file is kept)">Clear</button>
+    </div>
+    <div class="grid-wrap" id="hWrap">
+      <table class="grid" id="hTable">
+        <colgroup>
+          <col style="width:56px"><col style="width:20%"><col style="width:70px"><col><col style="width:58px"><col style="width:56px">
+          <col style="width:84px"><col style="width:76px"><col style="width:80px"><col style="width:72px"><col style="width:46px"><col style="width:84px">
+        </colgroup>
+        <thead><tr>
+          <th class="sort" data-key="id" data-dir="asc">#</th><th class="sort" data-key="host">Host</th><th class="sort" data-key="method">Method</th>
+          <th class="sort" data-key="path">URL</th><th class="sort c" data-key="params">Params</th><th class="sort c" data-key="edited">Edited</th>
+          <th class="sort" data-key="status">Status code</th><th class="sort r" data-key="respSize">Length</th><th class="sort" data-key="mime">MIME type</th>
+          <th class="sort" data-key="ext">Extension</th><th class="sort c" data-key="tls">TLS</th><th class="sort" data-key="start">Time</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="hEmpty">
+        <p><b>No traffic yet.</b></p>
+        <p>Click <b>Open browser</b> to start a browser whose traffic goes through lightproxy. HTTPS works without installing anything.</p>
+        <p>For other applications, set their HTTP proxy to <code class="proxyAddr">127.0.0.1:8080</code>.</p>
+        <p><button class="btn primary browserBtn" hidden>Open browser</button></p>
+      </div>
+    </div>
+    <div class="hsplit"></div>
+    <div class="viewer-wrap" style="display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0">
+      <div class="infobar" id="hInfo"><span>Select an item to view the request and response. ↑/↓ to move, right-click for actions.</span></div>
+      <div class="pair" id="hPair"></div>
+    </div>
+  </div>
+
+  <!-- WebSockets history -->
+  <div class="sub" id="p-ws" hidden>
+    <div class="filterbar">
+      <span class="muted">Filter:</span>
+      <input type="search" id="wsFilter" placeholder="Search URL or message…" autocomplete="off">
+      <div class="spacer"></div>
+      <span class="muted" id="wsCount"></span>
+    </div>
+    <div class="grid-wrap" id="wsWrap">
+      <table class="grid" id="wsTable">
+        <colgroup><col style="width:56px"><col style="width:28%"><col style="width:110px"><col style="width:80px"><col style="width:90px"><col></colgroup>
+        <thead><tr><th>#</th><th>URL</th><th>Direction</th><th class="r">Length</th><th>Time</th><th>Message</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="wsEmpty"><p>No WebSocket messages yet. Messages of WebSocket connections through the proxy appear here.</p></div>
+    </div>
+    <div class="hsplit"></div>
+    <div class="wsview"><div class="infobar" id="wsInfo"></div><div id="wsViewer"></div></div>
+  </div>
+
+  <!-- Match and replace -->
+  <div class="sub" id="p-rules" hidden>
+    <div class="toolbar">
+      <button id="rAdd" class="primary">Add</button>
+      <button id="rEdit" disabled>Edit</button>
+      <button id="rRemove" disabled>Remove</button>
+      <button id="rUp" disabled>Up</button>
+      <button id="rDown" disabled>Down</button>
+      <div class="spacer"></div>
+      <span class="muted">Rules are applied to proxy traffic in order, before Intercept. Repeater and Intruder requests are sent as written.</span>
+    </div>
+    <div class="grid-wrap">
+      <table class="grid" id="rTable">
+        <colgroup><col style="width:70px"><col style="width:150px"><col style="width:28%"><col style="width:24%"><col style="width:70px"><col></colgroup>
+        <thead><tr><th class="c">Enabled</th><th>Item</th><th>Match</th><th>Replace</th><th>Type</th><th>Comment</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Proxy settings -->
+  <div class="sub page" id="p-settings" hidden>
+    <div class="section">
+      <h3>Proxy listener</h3>
+      <p>Configure your browser or application to use this HTTP proxy. HTTPS is tunnelled through it with CONNECT.</p>
+      <div class="row"><code class="proxyAddr">127.0.0.1:8080</code><button class="btn primary browserBtn" hidden>Open browser</button></div>
+      <p>The built-in browser uses its own profile and trusts lightproxy's certificates without installing anything.</p>
+    </div>
+    <div class="section">
+      <h3>Interception</h3>
+      <div class="row"><label class="check"><input type="checkbox" class="setReq"> Intercept requests</label></div>
+      <div class="row"><label class="check"><input type="checkbox" class="setResp"> Intercept responses</label></div>
+      <div class="row"><label class="check"><input type="checkbox" class="setStatic"> Do not intercept static files (images, CSS, JavaScript, fonts)</label></div>
+      <p>Only in-scope hosts are intercepted (everything when the scope is empty). Browser background services are never intercepted.</p>
+    </div>
+    <div class="section" id="caSection" hidden>
+      <h3>CA certificate</h3>
+      <p>To decrypt HTTPS of other applications, install this certificate in the trust store they use.
+        <span style="color:var(--warn)">Anyone who has the CA key can read HTTPS traffic of a computer that trusts it: do not share the key and remove the certificate when you are done.</span></p>
+      <div class="row"><a class="btnlink" href="/lightproxy-ca.crt" download>Export CA certificate</a></div>
+      <p><b>Windows</b> (current user only)</p>
+      <pre>certutil -user -addstore Root "%USERPROFILE%\Downloads\lightproxy-ca.crt"</pre>
+      <p><b>macOS</b></p>
+      <pre>security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain-db ~/Downloads/lightproxy-ca.crt</pre>
+      <p><b>Firefox</b> uses its own store: Settings → Privacy &amp; Security → View Certificates → Authorities → Import.</p>
+      <p>Through the proxy, the certificate is also served at <code>http://lightproxy/cert</code>.</p>
+    </div>
+    <div class="section">
+      <h3>HTTP</h3>
+      <p>Accept-Encoding headers are limited to gzip and deflate so responses can be decoded for display. Compressed WebSocket extensions are removed so messages can be read.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ Intruder ═════════════ -->
+<section class="tab" id="tab-intruder" hidden>
+  <div class="doc-tabs" id="intTabs"></div>
+  <div class="toolbar">
+    <select id="intType" title="Attack type">
+      <option value="sniper">Sniper attack</option>
+      <option value="battering_ram">Battering ram attack</option>
+      <option value="pitchfork">Pitchfork attack</option>
+      <option value="cluster_bomb">Cluster bomb attack</option>
+    </select>
+    <span class="muted" style="margin-left:10px">Target</span>
+    <input type="text" id="intTarget" spellcheck="false" placeholder="https://example.com" style="width:min(320px,35vw);font-family:var(--mono);font-size:12px">
+    <div class="spacer"></div>
+    <button id="intResults" hidden>Show results</button>
+    <button id="intStart" class="primary">Start attack</button>
+  </div>
+  <div class="int-body">
+    <div class="int-pos">
+      <div class="toolbar">
+        <b>Payload positions</b><span class="muted">Mark positions with § … §</span>
+        <div class="spacer"></div>
+        <button id="intAdd" title="Wrap the selection in § markers">Add §</button>
+        <button id="intClear">Clear §</button>
+        <button id="intAuto" title="Mark parameter and cookie values">Auto §</button>
+      </div>
+      <textarea id="intTemplate" spellcheck="false" placeholder="Send a request here from HTTP history (right-click → Send to Intruder) or paste one."></textarea>
+      <div class="statusbar" id="intPosInfo">0 payload positions</div>
+    </div>
+    <div class="vsplit"></div>
+    <div class="side">
+      <h3>Payloads</h3>
+      <div class="row"><label>Payload set</label><select id="intSet"></select></div>
+      <div class="row"><label>Payload type</label><select id="intPType"><option value="list">Simple list</option><option value="numbers">Numbers</option></select></div>
+      <div class="row muted" id="intCounts"></div>
+      <div id="intListBox">
+        <div class="row"><button id="intPaste">Paste</button><button id="intLoad">Load…</button><button id="intDedupe">Deduplicate</button><button id="intClearList">Clear</button>
+          <input type="file" id="intFile" hidden></div>
+        <textarea class="field" id="intList" spellcheck="false" placeholder="One payload per line"></textarea>
+      </div>
+      <div id="intNumBox" hidden>
+        <div class="row"><label>From</label><input type="number" id="intFrom" value="1"></div>
+        <div class="row"><label>To</label><input type="number" id="intTo" value="100"></div>
+        <div class="row"><label>Step</label><input type="number" id="intStep" value="1"></div>
+      </div>
+      <h3>Payload encoding</h3>
+      <div class="row"><label class="check" style="min-width:0"><input type="checkbox" id="intEncode" checked> URL-encode these characters: <code>./\=&lt;&gt;?+&amp;*;:"{}|^`#</code> and spaces</label></div>
+      <h3>Resource pool</h3>
+      <div class="row"><label>Concurrent requests</label><input type="number" id="intConc" value="5" min="1" max="50"></div>
+      <div class="row"><label>Delay (ms)</label><input type="number" id="intDelay" value="0" min="0"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ Repeater ═════════════ -->
+<section class="tab" id="tab-repeater" hidden>
+  <div class="doc-tabs" id="repTabs"></div>
+  <div class="toolbar">
+    <button id="repSend" class="primary" title="Ctrl+Space or Ctrl+Enter">Send</button>
+    <button id="repCancel" disabled>Cancel</button>
+    <button id="repPrev" disabled title="Previous request in this tab">‹</button>
+    <button id="repNext" disabled title="Next request in this tab">›</button>
+    <button id="repAsk" class="ask" title="Talk to Claude about this request and its response">Ask Claude</button>
+    <div class="spacer"></div>
+    <span class="muted">Target:</span>
+    <input type="text" id="repTarget" spellcheck="false" placeholder="https://example.com">
+  </div>
+  <div class="pair" id="repPair"></div>
+  <div class="statusbar" id="repStatus">Ready</div>
+</section>
+
+<!-- ═════════════ Decoder ═════════════ -->
+<section class="tab" id="tab-decoder" hidden>
+  <div class="toolbar"><b>Decoder</b><span class="muted">Each operation fills the next panel. Editing a panel recomputes the ones below it.</span>
+    <div class="spacer"></div><button id="decReset">Clear</button></div>
+  <div class="dec" id="decList"></div>
+</section>
+</main>
+
+<div class="ctxmenu" id="menu" hidden></div>
+
+<aside class="drawer" id="assist" hidden>
+  <div class="drawer-head">
+    <b>Ask Claude</b>
+    <button class="btn" id="asList" title="All conversations">☰ Chats</button>
+    <span class="muted" id="asCtx"></span>
+    <div class="spacer"></div>
+    <select id="asLang" title="Reply language"><option value="auto">Auto</option><option value="en">English</option><option value="tr">Türkçe</option></select>
+    <button class="btn" id="asNew" title="Start a new conversation about this request">New chat</button>
+    <button class="btn" id="asClose" title="Close (Esc)">×</button>
+  </div>
+  <div class="drawer-msgs" id="asMsgs"></div>
+  <div class="chips" id="asChips"></div>
+  <div class="drawer-input" id="asInputRow">
+    <textarea id="asInput" spellcheck="false" placeholder="Ask about this request… (Enter to send, Shift+Enter for a new line)"></textarea>
+    <button class="btn primary" id="asSend">Send</button>
+  </div>
+</aside>
+
+<dialog id="ruleDialog">
+  <h3 id="ruleTitle">Add match/replace rule</h3>
+  <div class="form">
+    <label for="ruleType">Type</label>
+    <select id="ruleType">
+      <option value="request_header">Request header</option>
+      <option value="request_body">Request body</option>
+      <option value="request_first_line">Request first line</option>
+      <option value="response_header">Response header</option>
+      <option value="response_body">Response body</option>
+      <option value="response_first_line">Response first line</option>
+    </select>
+    <label for="ruleMatch">Match</label><input type="text" id="ruleMatch" spellcheck="false" placeholder="Leave empty to add a header">
+    <label for="ruleReplace">Replace</label><input type="text" id="ruleReplace" spellcheck="false" placeholder="Leave empty to remove a matching header">
+    <label for="ruleComment">Comment</label><input type="text" id="ruleComment">
+    <span></span><label class="check"><input type="checkbox" id="ruleRegex"> Regex match (replace may use $1, ${name})</label>
+  </div>
+  <div class="actions"><button id="ruleCancel">Cancel</button><button id="ruleOk" class="primary">OK</button></div>
+</dialog>
+
+<div class="overlay" id="attackWin" hidden>
+  <div class="win">
+    <div class="win-head">
+      <b id="awTitle">Attack</b><progress id="awBar" value="0" max="1"></progress><span class="muted" id="awProg"></span>
+      <div class="spacer"></div>
+      <button class="btn" id="awStop">Stop</button><button class="btn" id="awClose">Close</button>
+    </div>
+    <div class="filterbar"><span class="muted">Filter:</span><input type="search" id="awFilter" placeholder="Search payload, status or error…"></div>
+    <div class="grid-wrap"><table class="grid" id="awTable"><thead></thead><tbody></tbody></table></div>
+    <div class="hsplit"></div>
+    <div class="pair" id="awPair"></div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/proxy.js"></script>
+<script src="js/target.js"></script>
+<script src="js/repeater.js"></script>
+<script src="js/intruder.js"></script>
+<script src="js/decoder.js"></script>
+<script src="js/assist.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
