@@ -1,3 +1,5 @@
+<img src="internal/ui/static/logo.svg" width="72" align="right" alt="">
+
 # lightproxy
 
 A lightweight, single-binary, cross-platform intercepting HTTP(S) proxy with a Burp-style web interface. It is written in Go with the standard library only and has no external dependencies.

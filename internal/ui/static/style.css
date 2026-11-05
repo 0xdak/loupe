@@ -43,8 +43,8 @@ code { font-family: var(--mono); font-size: 12px; }
 
 /* ── Top bar and tabs ── */
 .topbar { display: flex; align-items: stretch; gap: 10px; padding: 0 10px; background: var(--chrome); border-bottom: 1px solid var(--line); }
-.brand { display: flex; align-items: center; gap: 6px; font-weight: 700; padding-right: 8px; letter-spacing: .2px; }
-.brand::before { content: ""; width: 14px; height: 14px; border-radius: 3px; background: var(--accent); }
+.brand { display: flex; align-items: center; gap: 7px; font-weight: 700; padding-right: 8px; letter-spacing: .2px; }
+.brand img { display: block; }
 .tabs { display: flex; align-items: stretch; }
 .tabs button {
   border: 0; background: none; padding: 9px 13px 7px; border-bottom: 2px solid transparent; cursor: pointer; color: var(--text);
