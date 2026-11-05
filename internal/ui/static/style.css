@@ -24,6 +24,9 @@
   --hn: #E0556B; --fl: #F2A7B3;
 }
 * { box-sizing: border-box; }
+:root { color-scheme: light dark; }
+:root[data-theme=light] { color-scheme: light; }
+:root[data-theme=dark] { color-scheme: dark; }
 html, body { height: 100%; margin: 0; }
 body {
   background: var(--chrome); color: var(--text);
@@ -169,7 +172,7 @@ a.btnlink { display: inline-block; padding: 4px 11px; border-radius: 3px; backgr
 /* ── Target ── */
 #t-sitemap { grid-template-columns: minmax(180px, 300px) 5px minmax(0, 1fr); }
 .tree { overflow: auto; padding: 4px 0; background: var(--panel); }
-.tree .node { padding: 2px 8px; cursor: default; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree .node { padding: 2px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tree .node:hover { background: var(--hover); }
 .tree .node.sel { background: var(--sel); }
 .tree .node.out { color: var(--muted); }
@@ -266,4 +269,19 @@ button.ask::before { content: "✦ "; }
   .int-body { grid-template-columns: 1fr; }
   .int-body > .vsplit { display: none; }
   #t-sitemap { grid-template-columns: 1fr; }
+}
+
+/* ── Accessibility: visible keyboard focus and reduced motion ── */
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.tabs button:focus-visible, .subtabs button:focus-visible, .vhead .vtab:focus-visible,
+.doc-tabs button:focus-visible, .claude-tab:focus-visible { outline-offset: -2px; }
+.ctxmenu button:focus-visible { outline-offset: -2px; }
+.as-item:focus-visible, .tree .node:focus-visible { outline-offset: -1px; }
+/* A mouse click should not leave a focus ring on these; keyboard focus still shows. */
+button:focus:not(:focus-visible), .tree .node:focus:not(:focus-visible) { outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
 }
