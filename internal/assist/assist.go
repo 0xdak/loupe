@@ -1,31 +1,21 @@
 // Package assist lets a person talk to an AI model about an HTTP exchange.
 //
-// Three backends are supported, all optional and all local-first:
-//
-//   - claude: the locally installed Claude Code CLI (`claude`), so no API
-//     key is needed. It runs with every tool disabled, so the model can only
-//     read what it is given and answer; it cannot touch files or run commands.
-//   - ollama: a local Ollama server (https://ollama.com), which runs open
-//     models such as Qwen or Llama entirely on this machine.
-//   - openai: any OpenAI-compatible chat endpoint, which covers Qwen's cloud
-//     API (DashScope), LM Studio, vLLM, llama.cpp's server and others.
+// Three backends are supported, all optional and all local-first, one per
+// file: claude.go (the Claude Code CLI), ollama.go (a local Ollama server)
+// and openai.go (any OpenAI-compatible endpoint, which covers Qwen's cloud
+// API, LM Studio, vLLM and llama.cpp). This file holds the parts they share:
+// the conversation types, backend selection and the prompt rendering.
 package assist
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
-	"time"
 )
 
 // MaxMessage is how many bytes of each HTTP message are given to the model.
@@ -122,320 +112,7 @@ func (a *Assistant) Chat(ctx context.Context, ex Exchange, history []Message, on
 	return a.be.stream(ctx, systemPrompt, prompt(ex, history), onText)
 }
 
-// ─── Claude Code CLI backend ─────────────────────────────────────────────
-
-type claudeBackend struct{ bin string }
-
-func (c *claudeBackend) name() string { return "Claude" }
-
-func findClaude() (*claudeBackend, error) {
-	if p, err := exec.LookPath("claude"); err == nil {
-		return &claudeBackend{bin: p}, nil
-	}
-	home, _ := os.UserHomeDir()
-	var candidates []string
-	if runtime.GOOS == "windows" {
-		candidates = []string{
-			filepath.Join(home, ".local", "bin", "claude.exe"),
-			filepath.Join(os.Getenv("APPDATA"), "npm", "claude.cmd"),
-		}
-	} else {
-		candidates = []string{
-			filepath.Join(home, ".local", "bin", "claude"),
-			filepath.Join(home, ".claude", "local", "claude"),
-			"/opt/homebrew/bin/claude", "/usr/local/bin/claude",
-		}
-	}
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			return &claudeBackend{bin: c}, nil
-		}
-	}
-	return nil, errors.New("Claude Code (the `claude` command) was not found; install it from https://claude.com/claude-code and sign in")
-}
-
-// stream runs one turn of the CLI with every tool disabled, so Claude can only
-// read the input and answer; it cannot touch files or run commands.
-func (c *claudeBackend) stream(ctx context.Context, system, input string, onText func(string)) error {
-	cmd := exec.CommandContext(ctx, c.bin, "-p",
-		"--output-format", "stream-json", "--verbose", "--include-partial-messages",
-		"--tools", "", "--strict-mcp-config", "--no-session-persistence",
-		"--system-prompt", system)
-	// A neutral directory, so no project instructions are picked up.
-	cmd.Dir = os.TempDir()
-	cmd.Stdin = strings.NewReader(input)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	var stderr strings.Builder
-	cmd.Stderr = &limitedWriter{w: &stderr, n: 4096}
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("starting claude: %w", err)
-	}
-
-	var resultErr string
-	sc := bufio.NewScanner(stdout)
-	sc.Buffer(make([]byte, 1<<20), 16<<20)
-	for sc.Scan() {
-		var line struct {
-			Type    string `json:"type"`
-			IsError bool   `json:"is_error"`
-			Result  string `json:"result"`
-			Event   struct {
-				Type  string `json:"type"`
-				Delta struct {
-					Type string `json:"type"`
-					Text string `json:"text"`
-				} `json:"delta"`
-			} `json:"event"`
-		}
-		if json.Unmarshal(sc.Bytes(), &line) != nil {
-			continue
-		}
-		switch {
-		case line.Type == "stream_event" && line.Event.Type == "content_block_delta" && line.Event.Delta.Type == "text_delta":
-			onText(line.Event.Delta.Text)
-		case line.Type == "result" && line.IsError:
-			resultErr = line.Result
-		}
-	}
-	err = cmd.Wait()
-	switch {
-	case ctx.Err() != nil:
-		return ctx.Err()
-	case resultErr != "":
-		return errors.New(resultErr)
-	case err != nil:
-		msg := strings.TrimSpace(stderr.String())
-		if msg == "" {
-			msg = err.Error()
-		}
-		return fmt.Errorf("claude failed: %s", msg)
-	}
-	return nil
-}
-
-// ─── Ollama backend ──────────────────────────────────────────────────────
-
-const defaultOllamaURL = "http://localhost:11434"
-
-type ollamaBackend struct {
-	url   string // base URL, no trailing slash
-	model string
-}
-
-func (o *ollamaBackend) name() string { return "Ollama · " + o.model }
-
-func newOllama(cfg Config) *ollamaBackend {
-	url := strings.TrimRight(strings.TrimSpace(cfg.URL), "/")
-	if url == "" {
-		url = defaultOllamaURL
-	}
-	model := strings.TrimSpace(cfg.Model)
-	if model == "" {
-		model = "qwen2.5"
-	}
-	return &ollamaBackend{url: url, model: model}
-}
-
-// autoOllama checks that Ollama is reachable and, unless a model was given,
-// picks an installed one (preferring a Qwen model).
-func autoOllama(cfg Config) (*ollamaBackend, error) {
-	o := newOllama(cfg)
-	models, err := o.tags()
-	if err != nil {
-		return nil, err
-	}
-	if len(models) == 0 {
-		return nil, fmt.Errorf("Ollama at %s has no models; pull one first, e.g. `ollama pull qwen2.5`", o.url)
-	}
-	if strings.TrimSpace(cfg.Model) == "" {
-		o.model = pickModel(models)
-	}
-	return o, nil
-}
-
-func pickModel(models []string) string {
-	for _, pref := range []string{"qwen", "llama", "mistral", "gemma", "phi"} {
-		for _, m := range models {
-			if strings.Contains(strings.ToLower(m), pref) {
-				return m
-			}
-		}
-	}
-	return models[0]
-}
-
-func (o *ollamaBackend) tags() ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, "GET", o.url+"/api/tags", nil)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, unreachable(o.url, err)
-	}
-	defer resp.Body.Close()
-	var body struct {
-		Models []struct {
-			Name string `json:"name"`
-		} `json:"models"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return nil, err
-	}
-	names := make([]string, 0, len(body.Models))
-	for _, m := range body.Models {
-		names = append(names, m.Name)
-	}
-	return names, nil
-}
-
-func (o *ollamaBackend) stream(ctx context.Context, system, input string, onText func(string)) error {
-	body, _ := json.Marshal(map[string]any{
-		"model":  o.model,
-		"stream": true,
-		"messages": []map[string]string{
-			{"role": "system", "content": system},
-			{"role": "user", "content": input},
-		},
-	})
-	req, err := http.NewRequestWithContext(ctx, "POST", o.url+"/api/chat", bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return unreachable(o.url, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Ollama: %s", readError(resp))
-	}
-	sc := bufio.NewScanner(resp.Body)
-	sc.Buffer(make([]byte, 64<<10), 4<<20)
-	for sc.Scan() {
-		line := bytes.TrimSpace(sc.Bytes())
-		if len(line) == 0 {
-			continue
-		}
-		var ev struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-			Done  bool   `json:"done"`
-			Error string `json:"error"`
-		}
-		if json.Unmarshal(line, &ev) != nil {
-			continue
-		}
-		if ev.Error != "" {
-			return errors.New(ev.Error)
-		}
-		if ev.Message.Content != "" {
-			onText(ev.Message.Content)
-		}
-		if ev.Done {
-			break
-		}
-	}
-	return streamErr(sc, ctx)
-}
-
-// ─── OpenAI-compatible backend ───────────────────────────────────────────
-
-type openaiBackend struct {
-	endpoint string // full chat-completions URL
-	model    string
-	key      string
-}
-
-func (o *openaiBackend) name() string { return o.model }
-
-func newOpenAI(cfg Config) (*openaiBackend, error) {
-	base := strings.TrimRight(strings.TrimSpace(cfg.URL), "/")
-	if base == "" {
-		return nil, errors.New("the openai provider needs -ai-url, the base URL (e.g. https://dashscope-intl.aliyuncs.com/compatible-mode/v1 for Qwen, or http://localhost:1234/v1 for a local server)")
-	}
-	if strings.TrimSpace(cfg.Model) == "" {
-		return nil, errors.New("the openai provider needs -ai-model (e.g. qwen-plus)")
-	}
-	endpoint := base
-	if !strings.HasSuffix(endpoint, "/chat/completions") {
-		endpoint += "/chat/completions"
-	}
-	key := strings.TrimSpace(cfg.APIKey)
-	for _, env := range []string{"OPENAI_API_KEY", "DASHSCOPE_API_KEY"} {
-		if key == "" {
-			key = os.Getenv(env)
-		}
-	}
-	return &openaiBackend{endpoint: endpoint, model: strings.TrimSpace(cfg.Model), key: key}, nil
-}
-
-func (o *openaiBackend) stream(ctx context.Context, system, input string, onText func(string)) error {
-	body, _ := json.Marshal(map[string]any{
-		"model":  o.model,
-		"stream": true,
-		"messages": []map[string]string{
-			{"role": "system", "content": system},
-			{"role": "user", "content": input},
-		},
-	})
-	req, err := http.NewRequestWithContext(ctx, "POST", o.endpoint, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if o.key != "" {
-		req.Header.Set("Authorization", "Bearer "+o.key)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return unreachable(o.endpoint, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return errors.New(readError(resp))
-	}
-	sc := bufio.NewScanner(resp.Body)
-	sc.Buffer(make([]byte, 64<<10), 4<<20)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if !strings.HasPrefix(line, "data:") {
-			continue
-		}
-		data := strings.TrimSpace(line[len("data:"):])
-		if data == "[DONE]" {
-			break
-		}
-		var ev struct {
-			Choices []struct {
-				Delta struct {
-					Content string `json:"content"`
-				} `json:"delta"`
-			} `json:"choices"`
-			Error *struct {
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		if json.Unmarshal([]byte(data), &ev) != nil {
-			continue
-		}
-		if ev.Error != nil && ev.Error.Message != "" {
-			return errors.New(ev.Error.Message)
-		}
-		for _, c := range ev.Choices {
-			if c.Delta.Content != "" {
-				onText(c.Delta.Content)
-			}
-		}
-	}
-	return streamErr(sc, ctx)
-}
-
-// ─── shared helpers ──────────────────────────────────────────────────────
+// ─── shared helpers for the HTTP backends ────────────────────────────────
 
 // streamErr prefers the context error (cancelled/timed out) over a read error.
 func streamErr(sc *bufio.Scanner, ctx context.Context) error {
@@ -473,6 +150,8 @@ func readError(resp *http.Response) string {
 	}
 	return resp.Status
 }
+
+// ─── prompt rendering ────────────────────────────────────────────────────
 
 // prompt renders the exchange and the conversation as the model's input. The
 // exchange comes first so it stays a stable, cacheable prefix across turns.
