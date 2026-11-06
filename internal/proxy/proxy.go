@@ -24,12 +24,12 @@ import (
 	"sync"
 	"time"
 
-	"lightproxy/internal/ca"
-	"lightproxy/internal/flow"
-	"lightproxy/internal/history"
-	"lightproxy/internal/pipeline"
-	"lightproxy/internal/rawhttp"
-	"lightproxy/internal/websocket"
+	"loupe/internal/ca"
+	"loupe/internal/flow"
+	"loupe/internal/history"
+	"loupe/internal/pipeline"
+	"loupe/internal/rawhttp"
+	"loupe/internal/websocket"
 )
 
 // DefaultMaxBody is the number of body bytes recorded per message by default.
@@ -104,8 +104,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == http.MethodConnect:
 		p.handleConnect(w, r)
-	case !r.URL.IsAbs() || r.URL.Hostname() == "lightproxy":
-		// Not a proxy request: the proxy address, or http://lightproxy/, was opened directly.
+	case !r.URL.IsAbs() || r.URL.Hostname() == "loupe":
+		// Not a proxy request: the proxy address, or http://loupe/, was opened directly.
 		p.serveInfo(w, r)
 	default:
 		p.handleHTTP(w, r)
@@ -228,7 +228,7 @@ func (p *Proxy) handleConnect(w http.ResponseWriter, r *http.Request) {
 	if p.ca != nil && isTLS {
 		f.Target.TLS = true
 		if err := p.intercept(conn, host, port); err != nil {
-			f.Error = "TLS handshake with the client failed; it may not trust the lightproxy CA or may pin certificates: " + err.Error()
+			f.Error = "TLS handshake with the client failed; it may not trust the loupe CA or may pin certificates: " + err.Error()
 			return
 		}
 		record = false // the decrypted requests are recorded one by one
@@ -338,16 +338,16 @@ func (p *Proxy) Exchange(ctx context.Context, target flow.Target, raw []byte) (*
 }
 
 func (p *Proxy) serveInfo(w http.ResponseWriter, r *http.Request) {
-	if p.ca != nil && (r.URL.Path == "/cert" || r.URL.Path == "/lightproxy-ca.crt") {
+	if p.ca != nil && (r.URL.Path == "/cert" || r.URL.Path == "/loupe-ca.crt") {
 		w.Header().Set("Content-Type", "application/x-x509-ca-cert")
-		w.Header().Set("Content-Disposition", `attachment; filename="lightproxy-ca.crt"`)
+		w.Header().Set("Content-Disposition", `attachment; filename="loupe-ca.crt"`)
 		w.Write(p.ca.CertPEM())
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(w, "lightproxy is running.\nSet this address as the HTTP proxy of your browser or client.\n")
+	io.WriteString(w, "loupe is running.\nSet this address as the HTTP proxy of your browser or client.\n")
 	if p.ca != nil {
-		io.WriteString(w, "Download the CA certificate from /cert (through the proxy: http://lightproxy/cert).\n")
+		io.WriteString(w, "Download the CA certificate from /cert (through the proxy: http://loupe/cert).\n")
 	}
 }
 

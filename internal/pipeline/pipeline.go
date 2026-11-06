@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"lightproxy/internal/flow"
+	"loupe/internal/flow"
 )
 
 // Action tells the proxy what to do with a message after a hook has seen it.

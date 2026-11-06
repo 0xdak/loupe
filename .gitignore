@@ -2,9 +2,9 @@
 /dist/
 *.exe
 *.exe~
-# only the built binaries at the repo root, NOT the cmd/lightproxy source dir
-/lightproxy
-/lightproxy-*
+# only the built binaries at the repo root, NOT the cmd/loupe source dir
+/loupe
+/loupe-*
 
 # Runtime data — NEVER publish (recorded traffic, local CA, settings)
 *.jsonl

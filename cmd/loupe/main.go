@@ -1,10 +1,10 @@
-// Command lightproxy is a lightweight intercepting HTTP proxy.
+// Command loupe is a lightweight intercepting HTTP proxy.
 //
 // Run without arguments it starts the proxy and the web interface together
 // and opens the interface in the default browser.
 //
-//	lightproxy [run] [-listen addr] [-ui addr] [-open] [-browser] [-history file] [-max-body n] [-quiet]
-//	lightproxy history [-history file] [-n count] [-id flowID]
+//	loupe [run] [-listen addr] [-ui addr] [-open] [-browser] [-history file] [-max-body n] [-quiet]
+//	loupe history [-history file] [-n count] [-id flowID]
 package main
 
 import (
@@ -24,19 +24,19 @@ import (
 	"syscall"
 	"time"
 
-	"lightproxy/internal/assist"
-	"lightproxy/internal/ca"
-	"lightproxy/internal/flow"
-	"lightproxy/internal/history"
-	"lightproxy/internal/intercept"
-	"lightproxy/internal/intruder"
-	"lightproxy/internal/launch"
-	"lightproxy/internal/pipeline"
-	"lightproxy/internal/proxy"
-	"lightproxy/internal/rules"
-	"lightproxy/internal/scope"
-	"lightproxy/internal/ui"
-	"lightproxy/internal/websocket"
+	"loupe/internal/assist"
+	"loupe/internal/ca"
+	"loupe/internal/flow"
+	"loupe/internal/history"
+	"loupe/internal/intercept"
+	"loupe/internal/intruder"
+	"loupe/internal/launch"
+	"loupe/internal/pipeline"
+	"loupe/internal/proxy"
+	"loupe/internal/rules"
+	"loupe/internal/scope"
+	"loupe/internal/ui"
+	"loupe/internal/websocket"
 )
 
 func main() {
@@ -52,7 +52,7 @@ func main() {
 }
 
 func runProxy(args []string) int {
-	fs := flag.NewFlagSet("lightproxy", flag.ContinueOnError)
+	fs := flag.NewFlagSet("loupe", flag.ContinueOnError)
 	listen := fs.String("listen", "127.0.0.1:8080", "address to accept proxy connections on")
 	histPath := fs.String("history", "history.jsonl", "file that captured traffic is appended to")
 	maxBody := fs.Int64("max-body", proxy.DefaultMaxBody, "bytes of each body to record (traffic is always forwarded in full)")
@@ -176,9 +176,9 @@ func runProxy(args []string) int {
 		listeners = append(listeners, uiLn)
 	}
 
-	fmt.Fprintf(os.Stderr, "lightproxy proxy:  %s\n", proxyAddr)
+	fmt.Fprintf(os.Stderr, "loupe proxy:  %s\n", proxyAddr)
 	if uiURL != "" {
-		fmt.Fprintf(os.Stderr, "lightproxy UI:     %s\n", uiURL)
+		fmt.Fprintf(os.Stderr, "loupe UI:     %s\n", uiURL)
 	}
 	if authority != nil {
 		fmt.Fprintf(os.Stderr, "HTTPS decryption:  on (CA in %s)\n", authority.Dir())
@@ -229,9 +229,9 @@ func runProxy(args []string) int {
 
 func defaultCADir() string {
 	if dir, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(dir, "lightproxy")
+		return filepath.Join(dir, "loupe")
 	}
-	return "lightproxy-ca"
+	return "loupe-ca"
 }
 
 // clientAddr turns a listening address into one a local client can dial:

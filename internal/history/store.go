@@ -13,7 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"lightproxy/internal/flow"
+	"loupe/internal/flow"
 )
 
 // Store appends flows to a JSON-lines file. It is safe for concurrent use.

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"lightproxy/internal/flow"
+	"loupe/internal/flow"
 )
 
 func TestReopenContinuesIDsAndSkipsPartialLine(t *testing.T) {

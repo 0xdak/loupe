@@ -50,7 +50,7 @@ function requestCount(t) {
 function renderIntruder() {
   if (!int.tabs.length) {
     int.tabs.push({ id: int.next++, type: "sniper", target: "https://example.com", sets: [newSet()], encode: true, conc: 5, delay: 0,
-      template: "GET /?q=" + M + "test" + M + " HTTP/1.1\nHost: example.com\nUser-Agent: lightproxy\n\n" });
+      template: "GET /?q=" + M + "test" + M + " HTTP/1.1\nHost: example.com\nUser-Agent: loupe\n\n" });
   }
   if (!intTab()) int.active = int.tabs[int.tabs.length - 1].id;
   const bar = $("intTabs");

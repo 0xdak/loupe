@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lightproxy</title>
+<title>loupe</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><img src="logo.svg" alt="" width="19" height="19">lightproxy</div>
+  <div class="brand"><img src="logo.svg" alt="" width="19" height="19">loupe</div>
   <nav class="tabs" id="mainTabs">
     <button data-tab="target">Target</button>
     <button data-tab="proxy" class="active">Proxy<span class="count" id="proxyCount"></span></button>
@@ -136,7 +136,7 @@
       </table>
       <div class="empty" id="hEmpty">
         <p><b>No traffic yet.</b></p>
-        <p>Click <b>Open browser</b> to start a browser whose traffic goes through lightproxy. HTTPS works without installing anything.</p>
+        <p>Click <b>Open browser</b> to start a browser whose traffic goes through loupe. HTTPS works without installing anything.</p>
         <p>For other applications, set their HTTP proxy to <code class="proxyAddr">127.0.0.1:8080</code>.</p>
         <p><button class="btn primary browserBtn" hidden>Open browser</button></p>
       </div>
@@ -194,7 +194,7 @@
       <h3>Proxy listener</h3>
       <p>Configure your browser or application to use this HTTP proxy. HTTPS is tunnelled through it with CONNECT.</p>
       <div class="row"><code class="proxyAddr">127.0.0.1:8080</code><button class="btn primary browserBtn" hidden>Open browser</button></div>
-      <p>The built-in browser uses its own profile and trusts lightproxy's certificates without installing anything.</p>
+      <p>The built-in browser uses its own profile and trusts loupe's certificates without installing anything.</p>
     </div>
     <div class="section">
       <h3>Interception</h3>
@@ -207,13 +207,13 @@
       <h3>CA certificate</h3>
       <p>To decrypt HTTPS of other applications, install this certificate in the trust store they use.
         <span style="color:var(--warn)">Anyone who has the CA key can read HTTPS traffic of a computer that trusts it: do not share the key and remove the certificate when you are done.</span></p>
-      <div class="row"><a class="btnlink" href="/lightproxy-ca.crt" download>Export CA certificate</a></div>
+      <div class="row"><a class="btnlink" href="/loupe-ca.crt" download>Export CA certificate</a></div>
       <p><b>Windows</b> (current user only)</p>
-      <pre>certutil -user -addstore Root "%USERPROFILE%\Downloads\lightproxy-ca.crt"</pre>
+      <pre>certutil -user -addstore Root "%USERPROFILE%\Downloads\loupe-ca.crt"</pre>
       <p><b>macOS</b></p>
-      <pre>security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain-db ~/Downloads/lightproxy-ca.crt</pre>
+      <pre>security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain-db ~/Downloads/loupe-ca.crt</pre>
       <p><b>Firefox</b> uses its own store: Settings → Privacy &amp; Security → View Certificates → Authorities → Import.</p>
-      <p>Through the proxy, the certificate is also served at <code>http://lightproxy/cert</code>.</p>
+      <p>Through the proxy, the certificate is also served at <code>http://loupe/cert</code>.</p>
     </div>
     <div class="section">
       <h3>HTTP</h3>

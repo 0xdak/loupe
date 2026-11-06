@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"lightproxy/internal/flow"
-	"lightproxy/internal/history"
-	"lightproxy/internal/intercept"
-	"lightproxy/internal/scope"
+	"loupe/internal/flow"
+	"loupe/internal/history"
+	"loupe/internal/intercept"
+	"loupe/internal/scope"
 )
 
 func newServer(t *testing.T, opts Options) (*history.Store, *httptest.Server) {
@@ -46,7 +46,7 @@ func TestServesPageListAndDetail(t *testing.T) {
 	}
 	page, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(string(page), "<title>lightproxy</title>") {
+	if !strings.Contains(string(page), "<title>loupe</title>") {
 		t.Fatal("index page not served")
 	}
 

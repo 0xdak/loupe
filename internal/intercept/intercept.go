@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"lightproxy/internal/flow"
-	"lightproxy/internal/pipeline"
-	"lightproxy/internal/rawhttp"
+	"loupe/internal/flow"
+	"loupe/internal/pipeline"
+	"loupe/internal/rawhttp"
 )
 
 // ErrNotFound means the message is no longer held: it was already decided,

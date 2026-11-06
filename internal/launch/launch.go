@@ -40,7 +40,7 @@ func Browser(proxyAddr, startURL, trustSPKI string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	profile := filepath.Join(cache, "lightproxy", "browser-profile")
+	profile := filepath.Join(cache, "loupe", "browser-profile")
 	if err := os.MkdirAll(profile, 0o700); err != nil {
 		return nil, err
 	}

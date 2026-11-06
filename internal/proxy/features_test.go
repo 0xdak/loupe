@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"lightproxy/internal/intercept"
-	"lightproxy/internal/rules"
-	"lightproxy/internal/websocket"
+	"loupe/internal/intercept"
+	"loupe/internal/rules"
+	"loupe/internal/websocket"
 )
 
 func TestInterceptEditsResponse(t *testing.T) {

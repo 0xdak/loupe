@@ -28,7 +28,7 @@ function sendToRepeater(target, raw) {
 }
 
 function renderRepeater() {
-  if (!rep.tabs.length) rep.tabs.push({ id: rep.next++, target: "https://example.com", raw: "GET / HTTP/1.1\r\nHost: example.com\r\nUser-Agent: lightproxy\r\nAccept: */*\r\n\r\n" });
+  if (!rep.tabs.length) rep.tabs.push({ id: rep.next++, target: "https://example.com", raw: "GET / HTTP/1.1\r\nHost: example.com\r\nUser-Agent: loupe\r\nAccept: */*\r\n\r\n" });
   if (!repTab()) rep.active = rep.tabs[rep.tabs.length - 1].id;
   const bar = $("repTabs");
   bar.textContent = "";

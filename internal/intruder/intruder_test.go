@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"lightproxy/internal/flow"
+	"loupe/internal/flow"
 )
 
 func TestCombine(t *testing.T) {

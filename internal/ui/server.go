@@ -19,15 +19,15 @@ import (
 	"sync"
 	"time"
 
-	"lightproxy/internal/assist"
-	"lightproxy/internal/flow"
-	"lightproxy/internal/history"
-	"lightproxy/internal/intercept"
-	"lightproxy/internal/intruder"
-	"lightproxy/internal/rawhttp"
-	"lightproxy/internal/rules"
-	"lightproxy/internal/scope"
-	"lightproxy/internal/websocket"
+	"loupe/internal/assist"
+	"loupe/internal/flow"
+	"loupe/internal/history"
+	"loupe/internal/intercept"
+	"loupe/internal/intruder"
+	"loupe/internal/rawhttp"
+	"loupe/internal/rules"
+	"loupe/internal/scope"
+	"loupe/internal/websocket"
 )
 
 //go:embed static
@@ -92,7 +92,7 @@ func New(store *history.Store, opts Options) *Server {
 	m.HandleFunc("GET /api/flows", s.listFlows)
 	m.HandleFunc("GET /api/flows/{id}", s.getFlow)
 	m.HandleFunc("POST /api/browser", s.openBrowser)
-	m.HandleFunc("GET /lightproxy-ca.crt", s.caCert)
+	m.HandleFunc("GET /loupe-ca.crt", s.caCert)
 	m.HandleFunc("GET /api/scope", s.getScope)
 	m.HandleFunc("PUT /api/scope", s.putScope)
 	m.HandleFunc("GET /api/intercept", s.getIntercept)
@@ -262,7 +262,7 @@ func (s *Server) caCert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/x-x509-ca-cert")
-	w.Header().Set("Content-Disposition", `attachment; filename="lightproxy-ca.crt"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="loupe-ca.crt"`)
 	w.Write(s.opts.CACert)
 }
 
@@ -298,7 +298,7 @@ func (s *Server) getFlow(w http.ResponseWriter, r *http.Request) {
 	}
 	f, found := s.store.Get(id)
 	if !found {
-		http.Error(w, "flow not in memory; use `lightproxy history -id` for older flows", http.StatusNotFound)
+		http.Error(w, "flow not in memory; use `loupe history -id` for older flows", http.StatusNotFound)
 		return
 	}
 	writeJSON(w, s.detail(f))

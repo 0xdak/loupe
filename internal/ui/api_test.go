@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"lightproxy/internal/assist"
-	"lightproxy/internal/flow"
+	"loupe/internal/assist"
+	"loupe/internal/flow"
 )
 
 func call(t *testing.T, method, url, body string) (int, string) {

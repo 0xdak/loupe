@@ -13,9 +13,9 @@ import (
 	"strings"
 	"sync"
 
-	"lightproxy/internal/flow"
-	"lightproxy/internal/pipeline"
-	"lightproxy/internal/rawhttp"
+	"loupe/internal/flow"
+	"loupe/internal/pipeline"
+	"loupe/internal/rawhttp"
 )
 
 // Rule types.

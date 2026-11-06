@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"lightproxy/internal/flow"
-	"lightproxy/internal/intercept"
+	"loupe/internal/flow"
+	"loupe/internal/intercept"
 )
 
 func echoServer() *httptest.Server {

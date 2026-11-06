@@ -1,8 +1,8 @@
 <img src="internal/ui/static/logo.svg" width="72" align="right" alt="">
 
-# lightproxy
+# Loupe
 
-A lightweight, single-binary, cross-platform intercepting HTTP(S) proxy with a Burp-style web interface. It is written in Go with the standard library only and has no external dependencies.
+Loupe is a lightweight, single-binary, cross-platform intercepting HTTP(S) proxy with a Burp-style web interface. It is written in Go with the standard library only and has no external dependencies.
 
 ## Usage
 
@@ -10,12 +10,12 @@ Double-click the binary or run it without arguments. The proxy (`127.0.0.1:8080`
 
 There are two ways to route traffic through it:
 
-- **Open browser** starts Edge, Chrome or Brave with its own profile. All of that browser's traffic, including localhost, goes through the proxy. It also trusts lightproxy's certificates, so HTTPS is decrypted without installing anything. Your normal browser is not touched.
+- **Open browser** starts Edge, Chrome or Brave with its own profile. All of that browser's traffic, including localhost, goes through the proxy. It also trusts Loupe's certificates, so HTTPS is decrypted without installing anything. Your normal browser is not touched.
 - For any other application, set its HTTP proxy to `127.0.0.1:8080`. For example: `curl -x http://127.0.0.1:8080 http://example.com`.
 
 ```bash
-lightproxy history -n 20         # list the last 20 flows
-lightproxy history -id 12        # print the full request and response of flow 12
+loupe history -n 20         # list the last 20 flows
+loupe history -id 12        # print the full request and response of flow 12
 ```
 
 | Flag | Default | Description |
@@ -25,7 +25,7 @@ lightproxy history -id 12        # print the full request and response of flow 1
 | `-open` | on | Open the interface in the default browser on start |
 | `-browser` | off | Also start the separate proxied browser on start |
 | `-no-mitm` | off | Do not decrypt HTTPS; tunnel it instead |
-| `-ca-dir` | user config dir/`lightproxy` | Directory holding the CA, keys, scope and match-and-replace rules |
+| `-ca-dir` | user config dir/`loupe` | Directory holding the CA, keys, scope and match-and-replace rules |
 | `-insecure-upstream` | off | Do not verify upstream certificates, for self-signed test servers |
 | `-history` | `history.jsonl` | History file (one JSON flow per line) |
 | `-max-body` | 10 MiB | Bytes of each body to record. Traffic is always forwarded in full. |
@@ -72,8 +72,8 @@ The tabs follow Burp Suite's layout and names.
   Pick the backend with `-ai`:
   - **`auto`** (default): uses the Claude Code CLI if it is installed, otherwise a running Ollama server.
   - **`claude`**: your installed Claude Code CLI (`claude`), run with every tool disabled, so no API key is needed and it cannot run anything on your machine.
-  - **`ollama`**: a local [Ollama](https://ollama.com) server — open models such as Qwen or Llama, all on your machine. Pull one first (`ollama pull qwen2.5`), then run `lightproxy -ai ollama -ai-model qwen2.5`. With no `-ai-model`, auto mode prefers an installed Qwen model.
-  - **`openai`**: any OpenAI-compatible chat endpoint — Qwen's cloud API (DashScope), LM Studio, vLLM, llama.cpp's server. For example, Qwen cloud: `lightproxy -ai openai -ai-url https://dashscope-intl.aliyuncs.com/compatible-mode/v1 -ai-model qwen-plus -ai-key $DASHSCOPE_API_KEY`.
+  - **`ollama`**: a local [Ollama](https://ollama.com) server — open models such as Qwen or Llama, all on your machine. Pull one first (`ollama pull qwen2.5`), then run `loupe -ai ollama -ai-model qwen2.5`. With no `-ai-model`, auto mode prefers an installed Qwen model.
+  - **`openai`**: any OpenAI-compatible chat endpoint — Qwen's cloud API (DashScope), LM Studio, vLLM, llama.cpp's server. For example, Qwen cloud: `loupe -ai openai -ai-url https://dashscope-intl.aliyuncs.com/compatible-mode/v1 -ai-model qwen-plus -ai-key $DASHSCOPE_API_KEY`.
 
 The theme follows the system setting. The **Theme** button switches between light and dark.
 
@@ -82,19 +82,19 @@ The theme follows the system setting. The **Theme** button switches between ligh
 The macOS binaries are not signed by Apple, so Gatekeeper says it "could not verify" the file when it was downloaded. Allow it once, from Terminal in the folder that holds it:
 
 ```bash
-xattr -d com.apple.quarantine lightproxy-darwin-arm64   # Apple Silicon; use lightproxy-darwin-amd64 on Intel
-chmod +x lightproxy-darwin-arm64
-./lightproxy-darwin-arm64
+xattr -d com.apple.quarantine loupe-darwin-arm64   # Apple Silicon; use loupe-darwin-amd64 on Intel
+chmod +x loupe-darwin-arm64
+./loupe-darwin-arm64
 ```
 
 Alternatively, try to open it once, then use System Settings → Privacy & Security → **Open Anyway**.
 
 ## HTTPS
 
-On first start a CA is created in the CA directory (`%APPDATA%\lightproxy` on Windows, `~/Library/Application Support/lightproxy` on macOS). A certificate for each site is signed on the fly.
+On first start a CA is created in the CA directory (`%APPDATA%\loupe` on Windows, `~/Library/Application Support/loupe` on macOS). A certificate for each site is signed on the fly.
 
 - The browser started with **Open browser** needs no setup. All site certificates share one key, which that browser is told to trust with `--ignore-certificate-errors-spki-list`.
-- For other applications, export the CA in **Proxy settings** and install it. Through the proxy it is also served at `http://lightproxy/cert`.
+- For other applications, export the CA in **Proxy settings** and install it. Through the proxy it is also served at `http://loupe/cert`.
 - On Windows, `curl` (Schannel) cannot check revocation for a local CA. Add `--ssl-no-revoke`.
 - Clients that pin certificates refuse interception. They appear as "TLS rejected".
 - Never share `ca-key.pem`.
@@ -105,7 +105,7 @@ Accept-Encoding is limited to gzip and deflate so responses can be shown decoded
 
 ```bash
 go test ./...
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/lightproxy-darwin-arm64 ./cmd/lightproxy
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/loupe-darwin-arm64 ./cmd/loupe
 ```
 
 `GOOS`/`GOARCH` may be `windows/amd64`, `darwin/arm64`, `darwin/amd64` or `linux/amd64`.
@@ -113,7 +113,7 @@ CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o di
 ## Layout
 
 ```
-cmd/lightproxy      command line: run and history
+cmd/loupe           command line: run and history
 internal/flow       one recorded exchange
 internal/pipeline   ordered, removable hooks; a panicking hook is skipped
 internal/history    JSONL history file and recent flows in memory

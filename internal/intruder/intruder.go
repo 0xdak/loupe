@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"lightproxy/internal/flow"
+	"loupe/internal/flow"
 )
 
 // Marker delimits payload positions in a template, as in Burp.

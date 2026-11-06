@@ -19,7 +19,7 @@ function histVisible(f) {
 
 function histRow(f) {
   const status = f.error ? h("td", { class: "err", title: f.error }, f.status || "Error") : h("td", {}, f.status || "");
-  let path = f.method === "CONNECT" ? (f.error ? "(TLS rejected — the client does not trust the lightproxy CA)" : "(tunnel — not decrypted)") : f.path;
+  let path = f.method === "CONNECT" ? (f.error ? "(TLS rejected — the client does not trust the loupe CA)" : "(tunnel — not decrypted)") : f.path;
   return h("tr", {},
     h("td", { class: "num" }, f.id),
     h("td", { title: f.host }, (f.tls ? "https://" : "http://") + f.host),

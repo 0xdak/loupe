@@ -1,3 +1,3 @@
-module lightproxy
+module loupe
 
 go 1.24

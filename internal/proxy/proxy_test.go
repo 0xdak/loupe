@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"lightproxy/internal/ca"
-	"lightproxy/internal/flow"
-	"lightproxy/internal/history"
-	"lightproxy/internal/pipeline"
+	"loupe/internal/ca"
+	"loupe/internal/flow"
+	"loupe/internal/history"
+	"loupe/internal/pipeline"
 )
 
 type env struct {
@@ -230,8 +230,8 @@ func TestInterceptsTLSAndRecordsDecryptedFlow(t *testing.T) {
 	if string(body) != "secret page /inside" {
 		t.Errorf("body = %q", body)
 	}
-	if issuer := resp.TLS.PeerCertificates[0].Issuer.Organization; len(issuer) == 0 || issuer[0] != "lightproxy" {
-		t.Errorf("client was not served a lightproxy certificate (issuer %v)", issuer)
+	if issuer := resp.TLS.PeerCertificates[0].Issuer.Organization; len(issuer) == 0 || issuer[0] != "loupe" {
+		t.Errorf("client was not served a loupe certificate (issuer %v)", issuer)
 	}
 
 	f := e.waitFlows(t, 1)[0]
@@ -280,14 +280,14 @@ func TestUnusedConnectIsNotRecorded(t *testing.T) {
 func TestServesCACertificate(t *testing.T) {
 	authority := newCA(t)
 	e := newEnvWith(t, Config{CA: authority})
-	resp, err := e.client().Get("http://lightproxy/cert")
+	resp, err := e.client().Get("http://loupe/cert")
 	if err != nil {
 		t.Fatal(err)
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if !bytes.Equal(body, authority.CertPEM()) {
-		t.Error("http://lightproxy/cert did not return the CA certificate")
+		t.Error("http://loupe/cert did not return the CA certificate")
 	}
 }
 
@@ -299,7 +299,7 @@ func TestDirectRequestShowsInfoPage(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(string(body), "lightproxy is running") {
+	if !strings.Contains(string(body), "loupe is running") {
 		t.Errorf("body = %q", body)
 	}
 }

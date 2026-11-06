@@ -1,24 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Loupe">
   <defs>
-    <linearGradient id="lpBody" x1="8" y1="6" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#B5384F"/>
-      <stop offset="1" stop-color="#6E1423"/>
-    </linearGradient>
-    <linearGradient id="lpGlass" x1="14" y1="12" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#F3D7DE"/>
-    </linearGradient>
+    <clipPath id="glass"><circle cx="24" cy="24" r="11.5"/></clipPath>
   </defs>
-  <!-- handle, drawn first so the lens ring sits on top and they read as one piece -->
-  <line x1="39" y1="39" x2="55.5" y2="55.5" stroke="url(#lpBody)" stroke-width="11.5" stroke-linecap="round"/>
+  <!-- handle (drawn first so the ring sits on top and they read as one piece) -->
+  <line x1="34" y1="34" x2="39.5" y2="39.5" stroke="#9B2D43" stroke-width="7.5" stroke-linecap="round"/>
+  <line x1="39" y1="39" x2="52" y2="52" stroke="#6E1423" stroke-width="12" stroke-linecap="round"/>
+  <line x1="42.5" y1="42.5" x2="49.5" y2="49.5" stroke="#E0556B" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>
   <!-- lens ring -->
-  <circle cx="26" cy="26" r="20" fill="url(#lpBody)"/>
+  <circle cx="24" cy="24" r="17" fill="#9B2D43"/>
   <!-- glass -->
-  <circle cx="26" cy="26" r="13" fill="url(#lpGlass)"/>
+  <circle cx="24" cy="24" r="11.5" fill="#F6E4E8"/>
   <!-- glass highlight -->
-  <path d="M17.5 22.5a11 11 0 0 1 8-6" fill="none" stroke="#fff" stroke-width="2.6"
-        stroke-linecap="round" opacity=".9"/>
-  <!-- AI spark inside the lens -->
-  <path d="M26 17.4c.95 5.15 2.5 6.7 7.65 7.65-5.15.95-6.7 2.5-7.65 7.65-.95-5.15-2.5-6.7-7.65-7.65 5.15-.95 6.7-2.5 7.65-7.65Z"
-        fill="#9B2D43"/>
+  <g clip-path="url(#glass)">
+    <path d="M11 29 L29 11" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+    <path d="M17 32 L32 17" stroke="#fff" stroke-width="2.3" stroke-linecap="round" opacity=".5"/>
+  </g>
 </svg>

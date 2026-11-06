@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"lightproxy/internal/pipeline"
-	"lightproxy/internal/rawhttp"
-	"lightproxy/internal/websocket"
+	"loupe/internal/pipeline"
+	"loupe/internal/rawhttp"
+	"loupe/internal/websocket"
 )
 
 // isWebSocket reports whether r asks to upgrade to the WebSocket protocol.

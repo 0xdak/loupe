@@ -1,7 +1,7 @@
 // Package ca manages the local certificate authority used to intercept TLS.
 //
 // The authority signs a certificate for every host on demand. All host
-// certificates share one key pair, so a browser started by lightproxy can be
+// certificates share one key pair, so a browser started by loupe can be
 // told to trust exactly that key (Chromium's --ignore-certificate-errors-spki-list)
 // without the CA being installed anywhere.
 package ca
@@ -122,7 +122,7 @@ func (a *Authority) sign(host string) (*tls.Certificate, error) {
 	now := time.Now()
 	tmpl := &x509.Certificate{
 		SerialNumber:          serial,
-		Subject:               pkix.Name{CommonName: host, Organization: []string{"lightproxy"}},
+		Subject:               pkix.Name{CommonName: host, Organization: []string{"loupe"}},
 		NotBefore:             now.Add(-24 * time.Hour), // tolerate clock skew
 		NotAfter:              now.Add(leafValidity),
 		KeyUsage:              x509.KeyUsageDigitalSignature,
@@ -167,8 +167,8 @@ func create(dir string) (*Authority, error) {
 		SerialNumber: serial,
 		// A per-installation name makes the CA easy to find and remove in a trust store.
 		Subject: pkix.Name{
-			CommonName:   fmt.Sprintf("lightproxy CA (%s, %s)", hostname, now.Format("2006-01-02")),
-			Organization: []string{"lightproxy"},
+			CommonName:   fmt.Sprintf("loupe CA (%s, %s)", hostname, now.Format("2006-01-02")),
+			Organization: []string{"loupe"},
 		},
 		NotBefore:             now.Add(-24 * time.Hour),
 		NotAfter:              now.Add(caValidity),

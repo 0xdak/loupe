@@ -55,7 +55,7 @@ $("themeBtn").addEventListener("click", () => {
     emit("scopeChanged");
     await initProxy();
   } catch (err) {
-    toast("Could not load data from lightproxy: " + err.message, true);
+    toast("Could not load data from loupe: " + err.message, true);
   }
   showTab(store.get("tab", "proxy"));
 })();
