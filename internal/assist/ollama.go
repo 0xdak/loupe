@@ -53,6 +53,12 @@ func autoOllama(cfg Config) (*ollamaBackend, error) {
 	return o, nil
 }
 
+// OllamaModels lists the models installed on the Ollama server at url, so the
+// interface can offer them. An empty url means the default local server.
+func OllamaModels(url string) ([]string, error) {
+	return newOllama(Config{URL: url}).tags()
+}
+
 func pickModel(models []string) string {
 	for _, pref := range []string{"qwen", "llama", "mistral", "gemma", "phi"} {
 		for _, m := range models {

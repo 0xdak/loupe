@@ -117,3 +117,62 @@ func TestAssistStreams(t *testing.T) {
 		t.Errorf("without an assistant: %d %q", code, body)
 	}
 }
+
+// fakeAI is a runtime controller whose Configure records the last config and
+// reports it as the active model, without touching the network.
+type fakeAI struct {
+	fakeChatter
+	cfg assist.Config
+}
+
+func (f *fakeAI) Status() assist.Status {
+	return assist.Status{
+		Available: f.cfg.Provider != "", Name: f.cfg.Provider + ":" + f.cfg.Model,
+		Provider: f.cfg.Provider, Model: f.cfg.Model, URL: f.cfg.URL,
+		HasKey: f.cfg.APIKey != "",
+	}
+}
+func (f *fakeAI) Configure(c assist.Config) assist.Status {
+	if c.APIKey == "" {
+		c.APIKey = f.cfg.APIKey // mirror the manager's keep-the-key rule
+	}
+	f.cfg = c
+	return f.Status()
+}
+func (f *fakeAI) Discover() assist.Discovery {
+	return assist.Discovery{Claude: true, OllamaURL: "http://localhost:11434", OllamaModels: []string{"qwen2.5-coder:1.5b"}}
+}
+
+func TestAIConfigure(t *testing.T) {
+	ai := &fakeAI{cfg: assist.Config{Provider: "ollama", Model: "qwen2.5-coder:1.5b"}}
+	_, srv := newServer(t, Options{Assistant: ai, AI: ai})
+
+	// GET lists the choice and the discovered options, never a key.
+	code, body := call(t, "GET", srv.URL+"/api/ai", "")
+	if code != 200 || !strings.Contains(body, "qwen2.5-coder:1.5b") || !strings.Contains(body, "\"claude\":true") {
+		t.Fatalf("GET /api/ai: %d %q", code, body)
+	}
+	if strings.Contains(body, "apiKey") {
+		t.Errorf("GET /api/ai leaked a key field: %q", body)
+	}
+
+	// PUT switches provider and model.
+	code, body = call(t, "PUT", srv.URL+"/api/ai", `{"provider":"openai","model":"qwen-plus","url":"http://x/v1","key":"secret"}`)
+	if code != 200 || !strings.Contains(body, `"provider":"openai"`) || !strings.Contains(body, `"model":"qwen-plus"`) {
+		t.Fatalf("PUT /api/ai: %d %q", code, body)
+	}
+	if ai.cfg.Provider != "openai" || ai.cfg.APIKey != "secret" {
+		t.Errorf("controller not updated: %+v", ai.cfg)
+	}
+
+	// info reflects the live controller, not the static fields.
+	if _, info := call(t, "GET", srv.URL+"/api/info", ""); !strings.Contains(info, `"assistantName":"openai:qwen-plus"`) || !strings.Contains(info, `"aiConfigurable":true`) {
+		t.Errorf("info not live: %q", info)
+	}
+
+	// Without a controller the endpoint is not implemented.
+	_, srv2 := newServer(t, Options{})
+	if code, _ := call(t, "GET", srv2.URL+"/api/ai", ""); code != 501 {
+		t.Errorf("GET /api/ai without controller = %d, want 501", code)
+	}
+}

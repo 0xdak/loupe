@@ -73,6 +73,7 @@ func New(cfg Config) (*Assistant, error) {
 		if err != nil {
 			return nil, err
 		}
+		b.model = strings.TrimSpace(cfg.Model)
 		return &Assistant{be: b}, nil
 	case "ollama":
 		// If Ollama is reachable, discover an installed model (unless -ai-model

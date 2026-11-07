@@ -322,3 +322,98 @@ $("asLang").value = ask.lang;
 $("asLang").addEventListener("change", (e) => { ask.lang = e.target.value; store.set("ask.lang", ask.lang); });
 addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("assist").hidden && !document.querySelector("dialog[open]")) $("assist").hidden = true; });
 updateChatsButton();
+
+// ── AI provider & model picker ──
+// Lets the provider (Claude / Ollama / OpenAI-compatible) and model be chosen
+// in the interface instead of only by command-line flags. The choice is saved
+// on the machine; the API key is never sent back to the browser.
+const aiPick = { status: {}, discovery: {} };
+
+async function openAiDialog() {
+  if (!app.info || !app.info.aiConfigurable) {
+    toast("This loupe build cannot change the AI model from the interface.", true);
+    return;
+  }
+  try {
+    const data = await getJSON("/api/ai");
+    aiPick.status = data.status || {};
+    aiPick.discovery = data.discovery || {};
+  } catch (err) {
+    toast("Could not load AI settings: " + err.message, true);
+    return;
+  }
+  const st = aiPick.status;
+  $("aiProvider").value = st.provider || "auto";
+  $("aiModel").value = st.model || "";
+  $("aiURL").value = st.url || "";
+  $("aiKey").value = "";
+  $("aiKey").placeholder = st.hasKey ? "•••• stored — leave blank to keep it" : "kept on this machine, never shown";
+  renderAiForm();
+  const d = $("aiDialog");
+  if (!d.open) d.showModal();
+}
+
+function aiRow(labelId, inputId, show) {
+  for (const id of [labelId, inputId]) { const el = $(id); if (el) el.hidden = !show; }
+}
+
+function renderAiForm() {
+  const p = $("aiProvider").value;
+  const disc = aiPick.discovery || {};
+  const dl = $("aiModelList");
+  dl.textContent = "";
+  aiRow("aiModelLabel", "aiModel", p !== "auto");
+  aiRow("aiURLLabel", "aiURL", p === "ollama" || p === "openai");
+  aiRow("aiKeyLabel", "aiKey", p === "openai");
+  let hint = "";
+  if (p === "auto") {
+    hint = "Uses Claude Code if it is installed, otherwise a local Ollama model.";
+  } else if (p === "claude") {
+    $("aiModel").placeholder = "default — or sonnet, opus, haiku";
+    hint = disc.claude
+      ? "Claude Code is installed. Leave the model blank for its default."
+      : "⚠ Claude Code (the claude command) was not found on this machine.";
+  } else if (p === "ollama") {
+    $("aiModel").placeholder = "e.g. qwen2.5-coder:1.5b";
+    for (const m of disc.ollamaModels || []) dl.append(h("option", { value: m }));
+    if (disc.ollamaError) hint = "⚠ " + disc.ollamaError;
+    else if ((disc.ollamaModels || []).length) hint = "Installed: " + disc.ollamaModels.join(", ");
+    else hint = "No models yet. Pull one first, e.g. ollama pull qwen2.5-coder:1.5b";
+  } else if (p === "openai") {
+    $("aiModel").placeholder = "e.g. qwen-plus";
+    hint = "Any OpenAI-compatible endpoint (Qwen cloud, LM Studio, vLLM, llama.cpp). The key stays on this machine.";
+  }
+  $("aiHint").textContent = hint;
+}
+
+async function saveAiDialog() {
+  const body = {
+    provider: $("aiProvider").value,
+    model: $("aiModel").value.trim(),
+    url: $("aiURL").value.trim(),
+    key: $("aiKey").value,
+  };
+  $("aiOk").disabled = true;
+  try {
+    const res = await api("PUT", "/api/ai", body);
+    const st = res.status || {};
+    app.info = app.info || {};
+    app.info.assistant = st.available;
+    app.info.assistantName = st.name;
+    app.info.assistantError = st.error;
+    applyAiName();
+    renderAsk();
+    $("aiDialog").close();
+    if (st.available) toast("AI model set to " + (st.name || st.provider) + ".");
+    else toast(st.error || "That model is not available.", true);
+  } catch (err) {
+    toast("Could not change the AI model: " + err.message, true);
+  } finally {
+    $("aiOk").disabled = false;
+  }
+}
+
+$("asCfg").addEventListener("click", openAiDialog);
+$("aiProvider").addEventListener("change", renderAiForm);
+$("aiCancel").addEventListener("click", () => $("aiDialog").close());
+$("aiOk").addEventListener("click", saveAiDialog);

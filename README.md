@@ -69,6 +69,12 @@ The tabs follow Burp Suite's layout and names.
   - The 60 most recent conversations are kept in this browser across reloads.
   - Messages are capped at 100 KB each before being sent; the cut is marked.
 
+  The provider and model can be changed from the interface at any time: open the
+  assistant and click **⚙ Model**. It lists the models on a running Ollama server
+  and whether Claude Code is installed, and remembers the choice (in `ai.json` in
+  the config directory). Any API key is stored on this machine only and is never
+  sent back to the browser. The `-ai*` flags below just seed the first run.
+
   Pick the backend with `-ai`:
   - **`auto`** (default): uses the Claude Code CLI if it is installed, otherwise a running Ollama server.
   - **`claude`**: your installed Claude Code CLI (`claude`), run with every tool disabled, so no API key is needed and it cannot run anything on your machine.

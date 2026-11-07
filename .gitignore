@@ -11,7 +11,9 @@
 *.pem
 *.key
 scope.json
+scope.txt
 rules.json
+ai.json
 /ca/
 *.log
 

@@ -53,11 +53,25 @@ type Options struct {
 	Assistant     Chatter
 	AssistantErr  string
 	AssistantName string
+	// AI, when set, lets the interface read and change the assistant's
+	// provider and model at runtime (the /api/ai endpoints). It is the live
+	// source of the assistant's name, availability and error, so AssistantName
+	// and AssistantErr are only used when AI is nil.
+	AI AIController
 }
 
 // Chatter talks to Claude about an HTTP exchange.
 type Chatter interface {
 	Chat(ctx context.Context, ex assist.Exchange, history []assist.Message, onText func(string)) error
+}
+
+// AIController reports and changes the active assistant from the interface.
+// *assist.Manager implements it.
+type AIController interface {
+	Chatter
+	Status() assist.Status
+	Configure(assist.Config) assist.Status
+	Discover() assist.Discovery
 }
 
 // Sender sends request text to a target and records the exchange.
@@ -110,6 +124,8 @@ func New(store *history.Store, opts Options) *Server {
 	m.HandleFunc("GET /api/ws", s.listWS)
 	m.HandleFunc("GET /api/ws/{id}", s.getWS)
 	m.HandleFunc("POST /api/assist", s.assist)
+	m.HandleFunc("GET /api/ai", s.getAI)
+	m.HandleFunc("PUT /api/ai", s.putAI)
 
 	store.Subscribe(func(f *flow.Flow) { s.broadcastJSON("", s.summarize(f)) })
 	opts.Intercept.Subscribe(func() { s.broadcastJSON("intercept", opts.Intercept.State()) })
@@ -248,12 +264,49 @@ func mimeType(ct string) string {
 }
 
 func (s *Server) info(w http.ResponseWriter, r *http.Request) {
+	// When a runtime controller is present it is the live truth; otherwise the
+	// assistant is whatever was fixed at start-up.
+	available, name, aerr := s.opts.Assistant != nil, s.opts.AssistantName, s.opts.AssistantErr
+	if s.opts.AI != nil {
+		st := s.opts.AI.Status()
+		available, name, aerr = st.Available, st.Name, st.Error
+	}
 	writeJSON(w, map[string]any{
 		"proxy": s.opts.ProxyAddr, "browser": s.opts.OpenBrowser != nil, "mitm": s.opts.CACert != nil,
 		"intruder": s.opts.Intruder != nil, "websockets": s.opts.WebSockets != nil, "rules": s.opts.Rules != nil,
-		"assistant": s.opts.Assistant != nil, "assistantError": s.opts.AssistantErr,
-		"assistantName": s.opts.AssistantName,
+		"assistant": available, "assistantError": aerr, "assistantName": name,
+		"aiConfigurable": s.opts.AI != nil,
 	})
+}
+
+// getAI returns the active assistant and the backends and models a person can
+// choose from. It never includes the API key, only whether one is set.
+func (s *Server) getAI(w http.ResponseWriter, r *http.Request) {
+	if s.opts.AI == nil {
+		http.Error(w, "the AI assistant cannot be configured from here", http.StatusNotImplemented)
+		return
+	}
+	writeJSON(w, map[string]any{"status": s.opts.AI.Status(), "discovery": s.opts.AI.Discover()})
+}
+
+// putAI switches the assistant to a chosen provider and model. An empty key
+// keeps the one already stored on this machine.
+func (s *Server) putAI(w http.ResponseWriter, r *http.Request) {
+	if s.opts.AI == nil {
+		http.Error(w, "the AI assistant cannot be configured from here", http.StatusNotImplemented)
+		return
+	}
+	var in struct {
+		Provider string `json:"provider"`
+		Model    string `json:"model"`
+		URL      string `json:"url"`
+		Key      string `json:"key"`
+	}
+	if !readJSON(w, r, &in) {
+		return
+	}
+	st := s.opts.AI.Configure(assist.Config{Provider: in.Provider, Model: in.Model, URL: in.URL, APIKey: in.Key})
+	writeJSON(w, map[string]any{"status": st})
 }
 
 func (s *Server) caCert(w http.ResponseWriter, r *http.Request) {
@@ -588,8 +641,18 @@ func (s *Server) assist(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &in) {
 		return
 	}
-	if s.opts.Assistant == nil {
-		msg := s.opts.AssistantErr
+	// Pick the chatter and decide availability from the live controller when
+	// one is present, so a model chosen in the interface is used right away.
+	chatter, msg := s.opts.Assistant, s.opts.AssistantErr
+	if s.opts.AI != nil {
+		st := s.opts.AI.Status()
+		if !st.Available {
+			chatter, msg = nil, st.Error
+		} else {
+			chatter = s.opts.AI
+		}
+	}
+	if chatter == nil {
 		if msg == "" {
 			msg = "the AI assistant is not available"
 		}
@@ -606,7 +669,7 @@ func (s *Server) assist(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
 	defer cancel()
-	err := s.opts.Assistant.Chat(ctx, in.Exchange, in.History, func(t string) { send(map[string]string{"text": t}) })
+	err := chatter.Chat(ctx, in.Exchange, in.History, func(t string) { send(map[string]string{"text": t}) })
 	if err != nil {
 		send(map[string]string{"error": err.Error()})
 		return

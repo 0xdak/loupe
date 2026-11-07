@@ -143,13 +143,12 @@ func runProxy(args []string) int {
 	listeners := []net.Listener{ln}
 
 	// The assistant uses Claude Code, Ollama or an OpenAI-compatible endpoint.
-	var chatter ui.Chatter
-	var chatterErr, chatterName string
-	if a, err := assist.New(assist.Config{Provider: *aiProvider, Model: *aiModel, URL: *aiURL, APIKey: *aiKey}); err == nil {
-		chatter, chatterName = a, a.Name()
-	} else {
-		chatterErr = err.Error()
-	}
+	// The flags seed the first run; after that the provider and model can be
+	// changed in the interface, and the choice is remembered in the config dir.
+	aiMgr := assist.NewManager(
+		assist.Config{Provider: *aiProvider, Model: *aiModel, URL: *aiURL, APIKey: *aiKey},
+		filepath.Join(*caDir, "ai.json"),
+	)
 
 	var uiURL string
 	if *uiAddr != "" {
@@ -166,7 +165,7 @@ func runProxy(args []string) int {
 				ProxyAddr: proxyAddr, OpenBrowser: startBrowser, CACert: caPEM,
 				Intercept: queue, Scope: sc, Sender: p, Rules: engine,
 				Intruder: intruder.NewManager(p), WebSockets: wsStore,
-				Assistant: chatter, AssistantErr: chatterErr, AssistantName: chatterName,
+				Assistant: aiMgr, AI: aiMgr,
 			}),
 			ReadHeaderTimeout: 30 * time.Second,
 			ErrorLog:          errLog,

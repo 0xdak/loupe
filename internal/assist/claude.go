@@ -16,9 +16,24 @@ import (
 // claudeBackend talks to the locally installed Claude Code CLI, so no API key
 // is needed. The CLI runs with every tool disabled, so Claude can only read
 // what it is given and answer; it cannot touch files or run commands.
-type claudeBackend struct{ bin string }
+type claudeBackend struct {
+	bin   string
+	model string // passed to the CLI with --model; empty uses its default
+}
 
-func (c *claudeBackend) name() string { return "Claude" }
+func (c *claudeBackend) name() string {
+	if c.model != "" {
+		return "Claude · " + c.model
+	}
+	return "Claude"
+}
+
+// ClaudeAvailable reports whether the Claude Code CLI is installed, so the
+// interface can offer it as a choice.
+func ClaudeAvailable() bool {
+	_, err := findClaude()
+	return err == nil
+}
 
 // findClaude locates the claude CLI on PATH or in its usual install locations.
 func findClaude() (*claudeBackend, error) {
@@ -50,10 +65,14 @@ func findClaude() (*claudeBackend, error) {
 // stream runs one turn of the CLI with every tool disabled, so Claude can only
 // read the input and answer; it cannot touch files or run commands.
 func (c *claudeBackend) stream(ctx context.Context, system, input string, onText func(string)) error {
-	cmd := exec.CommandContext(ctx, c.bin, "-p",
+	args := []string{"-p",
 		"--output-format", "stream-json", "--verbose", "--include-partial-messages",
 		"--tools", "", "--strict-mcp-config", "--no-session-persistence",
-		"--system-prompt", system)
+		"--system-prompt", system}
+	if c.model != "" {
+		args = append(args, "--model", c.model)
+	}
+	cmd := exec.CommandContext(ctx, c.bin, args...)
 	// A neutral directory, so no project instructions are picked up.
 	cmd.Dir = os.TempDir()
 	cmd.Stdin = strings.NewReader(input)

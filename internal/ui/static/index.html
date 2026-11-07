@@ -309,6 +309,7 @@
     <span class="muted" id="asCtx"></span>
     <div class="spacer"></div>
     <select id="asLang" title="Reply language"><option value="auto">Auto</option><option value="en">English</option><option value="tr">Türkçe</option></select>
+    <button class="btn" id="asCfg" title="Choose the AI provider and model">⚙ Model</button>
     <button class="btn" id="asNew" title="Start a new conversation about this request">New chat</button>
     <button class="btn" id="asClose" title="Close (Esc)">×</button>
   </div>
@@ -319,6 +320,28 @@
     <button class="btn primary" id="asSend">Send</button>
   </div>
 </aside>
+
+<dialog id="aiDialog">
+  <h3>AI provider and model</h3>
+  <div class="form">
+    <label for="aiProvider">Provider</label>
+    <select id="aiProvider">
+      <option value="auto">Auto (Claude if installed, else Ollama)</option>
+      <option value="claude">Claude Code (local CLI)</option>
+      <option value="ollama">Ollama (local models)</option>
+      <option value="openai">OpenAI-compatible endpoint</option>
+    </select>
+    <label for="aiModel" id="aiModelLabel">Model</label>
+    <input type="text" id="aiModel" list="aiModelList" spellcheck="false" placeholder="">
+    <datalist id="aiModelList"></datalist>
+    <label for="aiURL" id="aiURLLabel">Base URL</label>
+    <input type="text" id="aiURL" spellcheck="false" placeholder="http://localhost:11434">
+    <label for="aiKey" id="aiKeyLabel">API key</label>
+    <input type="password" id="aiKey" spellcheck="false" autocomplete="off" placeholder="">
+  </div>
+  <p class="muted small" id="aiHint"></p>
+  <div class="actions"><button id="aiCancel">Cancel</button><button id="aiOk" class="primary">Save</button></div>
+</dialog>
 
 <dialog id="ruleDialog">
   <h3 id="ruleTitle">Add match/replace rule</h3>
