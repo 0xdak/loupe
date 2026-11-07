@@ -75,6 +75,12 @@ func New(cfg Config) (*Assistant, error) {
 		}
 		return &Assistant{be: b}, nil
 	case "ollama":
+		// If Ollama is reachable, discover an installed model (unless -ai-model
+		// was given). If it is not reachable, build lazily with the default so
+		// the UI still starts and surfaces the error at chat time.
+		if b, err := autoOllama(cfg); err == nil {
+			return &Assistant{be: b}, nil
+		}
 		return &Assistant{be: newOllama(cfg)}, nil
 	case "openai", "openai-compatible", "qwen":
 		b, err := newOpenAI(cfg)
