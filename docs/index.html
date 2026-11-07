@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loupe — intercepting HTTP(S) proxy</title>
+<meta name="description" content="Loupe is a single-binary intercepting HTTP(S) proxy with a Burp-style web interface. Go, standard library only, no dependencies, and a local-first AI assistant you choose yourself.">
+<meta property="og:title" content="Loupe — every request, held for inspection">
+<meta property="og:description" content="A single Go binary. Burp-style interception, Repeater, Intruder, Decoder — and a local-first AI you pick in the UI.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cline x1='34' y1='34' x2='39.5' y2='39.5' stroke='%239B2D43' stroke-width='7.5' stroke-linecap='round'/%3E%3Cline x1='39' y1='39' x2='52' y2='52' stroke='%236E1423' stroke-width='12' stroke-linecap='round'/%3E%3Ccircle cx='24' cy='24' r='17' fill='%239B2D43'/%3E%3Ccircle cx='24' cy='24' r='11.5' fill='%23F6E4E8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800&family=Martian+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F3EE; --paper-2:#FBF8F3; --paper-sink:#F0E9E1;
+  --ink:#1C1719; --ink-2:#6E635C; --ink-3:#938A82;
+  --rule:#E3DAD2; --rule-2:#D8CEC3;
+  --stamp:#9B2D43; --stamp-deep:#6E1423; --stamp-ink:#9B2D43; --stamp-hover:#9B2D43; --pink:#E0556B;
+  --ok:#3C6E57;
+  --display:"Archivo Expanded",system-ui,sans-serif;
+  --sans:"Archivo",system-ui,sans-serif;
+  --mono:"Martian Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --maxw:1200px;
+  --stampblend:multiply;
+}
+:root[data-theme="dark"],
+html:not([data-theme="light"]) :root{}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#141011; --paper-2:#1C1618; --paper-sink:#0F0C0D;
+    --ink:#F1E9EB; --ink-2:#B4A7AB; --ink-3:#9B9094;
+    --rule:#2E2528; --rule-2:#3A3034;
+    --stamp:#E0607A; --stamp-deep:#B5374F; --stamp-ink:#F293A5; --stamp-hover:#C83C56; --pink:#E0556B;
+    --ok:#7FC3A3;
+    --stampblend:screen;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141011; --paper-2:#1C1618; --paper-sink:#0F0C0D;
+  --ink:#F1E9EB; --ink-2:#B4A7AB; --ink-3:#9B9094;
+  --rule:#2E2528; --rule-2:#3A3034;
+  --stamp:#E0607A; --stamp-deep:#B5374F; --stamp-ink:#F293A5; --stamp-hover:#C83C56; --pink:#E0556B;
+  --ok:#7FC3A3;
+  --stampblend:screen;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink); overflow-x:hidden;
+  font-family:var(--sans); font-size:17px; line-height:1.6;
+  font-feature-settings:"ss01";
+  -webkit-font-smoothing:antialiased;
+}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+::selection{background:var(--stamp); color:#fff}
+a{color:inherit}
+h1,h2,h3{margin:0; letter-spacing:-0.03em; line-height:1.02; font-family:var(--display); font-weight:800}
+p{margin:0}
+:focus-visible{outline:2.5px solid var(--stamp); outline-offset:3px; border-radius:1px}
+
+/* custom scrollbar */
+*{scrollbar-color:var(--stamp) var(--paper-sink)}
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:var(--paper-sink)}
+::-webkit-scrollbar-thumb{background:var(--stamp-deep); border:3px solid var(--paper-sink)}
+
+.wrap{max-width:var(--maxw); margin-inline:auto; padding-inline:clamp(18px,4vw,40px)}
+.mono{font-family:var(--mono)}
+
+/* ── top bar ── */
+.bar{position:sticky; top:0; z-index:40; background:color-mix(in srgb,var(--paper) 86%,transparent);
+  backdrop-filter:saturate(120%) blur(8px); border-bottom:1px solid var(--rule)}
+.bar .wrap{display:flex; align-items:center; gap:22px; height:64px}
+.brand{display:flex; align-items:center; gap:10px; text-decoration:none; font-family:var(--display);
+  font-weight:800; font-size:1.18rem; letter-spacing:-0.04em}
+.brand svg{width:28px; height:28px; display:block}
+.nav{display:flex; align-items:center; gap:7px; margin-left:auto}
+.nav a{font-family:var(--mono); font-size:.73rem; letter-spacing:.02em; text-transform:uppercase;
+  text-decoration:none; color:var(--ink-2); padding:7px 11px; border-radius:2px}
+.nav a:hover{color:var(--ink); background:var(--paper-sink)}
+.nav a.gh{color:#fff; background:var(--stamp-deep)}
+.nav a.gh:hover{background:var(--stamp-hover); color:#fff}
+.iconbtn{appearance:none; border:1px solid var(--rule-2); background:var(--paper-2); color:var(--ink-2);
+  width:36px; height:36px; border-radius:2px; cursor:pointer; display:grid; place-items:center; flex:0 0 auto}
+.iconbtn:hover{color:var(--stamp); border-color:var(--stamp)}
+.iconbtn svg{width:18px;height:18px}
+@media(max-width:720px){.nav a:not(.gh){display:none}}
+
+/* ── hero ── */
+.hero{position:relative; padding-top:84px; padding-bottom:72px}
+.hero .wrap{display:grid; grid-template-columns:1.08fr .92fr; gap:clamp(30px,5vw,64px); align-items:center}
+.lede h1{font-size:clamp(2.7rem,6.6vw,5.1rem)}
+.lede h1 em{font-style:normal; color:var(--stamp-ink)}
+.deck{margin-top:22px; font-size:clamp(1.05rem,1.6vw,1.26rem); color:var(--ink-2); max-width:34ch}
+.deck b{color:var(--ink); font-weight:600}
+.cta{margin-top:30px; display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+.btn{display:inline-flex; align-items:center; gap:9px; font-family:var(--mono); font-weight:500;
+  font-size:.8rem; letter-spacing:.03em; text-transform:uppercase; text-decoration:none;
+  padding:14px 20px; border-radius:2px; transition:transform .18s cubic-bezier(.2,.8,.2,1),background .18s}
+.btn.primary{background:var(--stamp-deep); color:#fff; box-shadow:0 2px 0 color-mix(in srgb,var(--stamp-deep) 60%,#000), 0 10px 22px -12px var(--stamp-deep)}
+.btn.primary:hover{background:var(--stamp-hover); transform:translateY(-2px)}
+.btn.primary svg{width:15px;height:15px}
+.install{margin-top:20px; display:flex; align-items:stretch; max-width:440px; border:1px solid var(--rule-2);
+  border-radius:2px; background:var(--paper-2); overflow:hidden}
+.install code{font-family:var(--mono); font-size:.76rem; color:var(--ink); padding:12px 14px; overflow-x:auto; white-space:nowrap; flex:1}
+.install .cp{appearance:none;border:0;border-left:1px solid var(--rule-2); background:transparent; color:var(--ink-2); cursor:pointer; padding:0 13px; font-family:var(--mono); font-size:.7rem}
+.install .cp:hover{color:var(--stamp); background:var(--paper-sink)}
+.trust{margin-top:24px; display:flex; flex-wrap:wrap; gap:7px 18px; font-family:var(--mono); font-size:.75rem; letter-spacing:.02em; color:var(--ink-2)}
+.trust span{display:inline-flex; align-items:center; gap:7px}
+.trust span::before{content:""; width:5px; height:5px; background:var(--stamp); border-radius:50%}
+
+/* ── declaration card (hero right) ── */
+.decl{position:relative; background:var(--paper-2); border:1px solid var(--rule-2);
+  box-shadow:0 1px 0 var(--paper), 0 30px 60px -34px rgba(40,20,20,.5);
+  --perf:radial-gradient(circle at 5px 50%, transparent 3.2px, var(--paper-2) 3.6px);
+}
+.decl::before,.decl::after{content:""; position:absolute; left:0; right:0; height:10px;
+  background:var(--perf); background-size:11px 11px; background-position:0 center}
+.decl::before{top:-10px} .decl::after{bottom:-10px; transform:scaleY(-1)}
+.decl .hd{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:14px 18px; border-bottom:1px dashed var(--rule-2)}
+.decl .hd .no{font-family:var(--mono); font-weight:600; font-size:.76rem; letter-spacing:.05em; color:var(--ink-2)}
+.decl .hd .no b{color:var(--stamp-ink)}
+.decl .verdict{font-family:var(--mono); font-size:.74rem; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--stamp-ink); border:1px solid currentColor; padding:3px 7px; border-radius:1px}
+.fieldrow{display:grid; grid-template-columns:86px 1fr; border-bottom:1px solid var(--rule); font-size:.78rem}
+.fieldrow .k{font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); padding:9px 10px 9px 18px; border-right:1px solid var(--rule); background:color-mix(in srgb,var(--paper-sink) 60%,transparent)}
+.fieldrow .v{font-family:var(--mono); color:var(--ink); padding:9px 14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.fieldrow .v .mut{color:var(--ink-3)}
+.raw{font-family:var(--mono); font-size:.8rem; line-height:1.7; padding:14px 18px; color:var(--ink-2); white-space:pre; overflow-x:auto}
+.raw .m{color:var(--stamp-ink); font-weight:600}
+.raw .h{color:var(--ink)}
+.raw .s{color:var(--ok); font-weight:600}
+.decl .ft{display:flex; gap:7px; padding:12px 18px; border-top:1px dashed var(--rule-2); flex-wrap:wrap}
+.chip{font-family:var(--mono); font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; padding:5px 9px; border-radius:1px; border:1px solid var(--rule-2); color:var(--ink-2)}
+.chip.on{background:var(--stamp-deep); color:#fff; border-color:var(--stamp-deep)}
+
+/* rubber stamp */
+.stamp{position:absolute; width:150px; height:150px; right:-26px; top:-30px; z-index:3;
+  color:var(--stamp-ink); mix-blend-mode:var(--stampblend);
+  transform:rotate(-13deg); pointer-events:none;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.04))}
+.stamp svg{width:100%; height:100%}
+@media (prefers-reduced-motion: no-preference){
+  .stamp{animation:thwack .55s cubic-bezier(.2,.9,.25,1) .45s both}
+  @keyframes thwack{
+    0%{opacity:0; transform:rotate(-30deg) scale(1.5)}
+    60%{opacity:.95; transform:rotate(-10deg) scale(.96)}
+    100%{opacity:.9; transform:rotate(-13deg) scale(1)}
+  }
+}
+
+/* ── section frame ── */
+section{position:relative}
+.band{padding-top:92px; padding-bottom:92px; border-top:1px solid var(--rule)}
+.htop{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:38px; flex-wrap:wrap}
+.htop h2{font-size:clamp(1.9rem,3.6vw,2.9rem)}
+.htop .note{font-family:var(--mono); font-size:.8rem; letter-spacing:.01em; color:var(--ink-2); max-width:32ch; text-align:right}
+.lead{font-size:clamp(1.05rem,1.5vw,1.2rem); color:var(--ink-2); max-width:60ch}
+
+/* checkpoint stations */
+.stations{display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--rule-2); background:var(--paper-2)}
+.station{padding:24px 22px 26px; border-right:1px solid var(--rule); position:relative}
+.station:last-child{border-right:0}
+.station .seg{font-family:var(--mono); font-size:.74rem; letter-spacing:.14em; text-transform:uppercase; color:var(--stamp-ink); font-weight:600}
+.station h3{font-family:var(--display); font-weight:700; font-size:1.32rem; margin:12px 0 9px; letter-spacing:-.02em}
+.station p{font-size:.92rem; color:var(--ink-2)}
+.station .mk{position:absolute; top:22px; right:20px; width:22px; height:22px; color:var(--ink-3)}
+.station .mk svg{width:100%;height:100%}
+@media(max-width:860px){.stations{grid-template-columns:1fr 1fr}
+  .station:nth-child(2n){border-right:0} .station:nth-child(-n+2){border-bottom:1px solid var(--rule)}}
+@media(max-width:520px){.stations{grid-template-columns:1fr}
+  .station{border-right:0; border-bottom:1px solid var(--rule)} .station:last-child{border-bottom:0}}
+
+/* manifest ledger */
+.manifest{border-top:2px solid var(--ink)}
+.item{display:grid; grid-template-columns:30px 190px 1fr auto; gap:18px; align-items:baseline;
+  padding:17px 6px; border-bottom:1px solid var(--rule)}
+.item .ic{width:22px; height:22px; color:var(--stamp-ink); align-self:center}
+.item .ic svg{width:100%;height:100%}
+.item .nm{font-family:var(--display); font-weight:700; font-size:1.12rem; letter-spacing:-.02em}
+.item .ds{color:var(--ink-2); font-size:.95rem}
+.item .cd{font-family:var(--mono); font-size:.8rem; letter-spacing:.02em; color:var(--ink-2); white-space:nowrap}
+.item:hover{background:var(--paper-2)}
+.item:hover .nm{color:var(--stamp-ink)}
+@media(max-width:760px){.item{grid-template-columns:24px 1fr; gap:6px 14px}
+  .item .ds{grid-column:2} .item .cd{grid-column:2; margin-top:2px}}
+
+/* AI section — struck-forward stack */
+.ai{display:grid; grid-template-columns:.95fr 1.05fr; gap:clamp(30px,5vw,60px); align-items:center}
+.providers{border:1px solid var(--rule-2); background:var(--paper-2)}
+.prov{display:flex; align-items:center; gap:14px; padding:18px 20px; border-bottom:1px solid var(--rule); position:relative; transition:background .2s}
+.prov:last-child{border-bottom:0}
+.prov .dot{width:9px;height:9px;border-radius:50%; border:1.5px solid var(--ink-3); flex:0 0 auto}
+.prov .pn{font-family:var(--display); font-weight:700; font-size:1.08rem; letter-spacing:-.02em}
+.prov .pd{font-family:var(--mono); font-size:.74rem; color:var(--ink-2); margin-left:auto; text-transform:uppercase; letter-spacing:.04em}
+.prov.ghost{opacity:.82}
+.prov.active{opacity:1; background:color-mix(in srgb,var(--stamp) 9%,transparent)}
+.prov.active .dot{background:var(--stamp); border-color:var(--stamp); box-shadow:0 0 0 4px color-mix(in srgb,var(--stamp) 22%,transparent)}
+.prov.active .pn{color:var(--stamp-ink)}
+.prov.active .pd{color:var(--stamp-ink)}
+.prov .struck{margin-left:auto; display:none}
+.prov.active .struck{display:inline-block; font-family:var(--mono); font-size:.72rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#fff; background:var(--stamp-deep); padding:4px 8px; border-radius:1px; transform:rotate(-4deg)}
+.prov.active .pd{display:none}
+.ai .copy h2{font-size:clamp(1.9rem,3.4vw,2.7rem)}
+.ai .copy p{margin-top:18px; color:var(--ink-2)}
+.ai .copy ul{margin:20px 0 0; padding:0; list-style:none; display:grid; gap:11px}
+.ai .copy li{display:grid; grid-template-columns:20px 1fr; gap:12px; font-size:.96rem; color:var(--ink-2)}
+.ai .copy li b{color:var(--ink); font-weight:600}
+.ai .copy li svg{width:18px;height:18px;color:var(--stamp-ink);margin-top:3px}
+@media(max-width:820px){.ai{grid-template-columns:1fr; gap:34px}}
+
+/* install */
+.installband .grid{display:grid; grid-template-columns:1fr 1fr; gap:34px}
+@media(max-width:760px){.installband .grid{grid-template-columns:1fr; gap:26px}}
+.steps{display:grid; gap:0; border:1px solid var(--rule-2); background:var(--paper-2)}
+.step{padding:16px 20px; border-bottom:1px solid var(--rule)}
+.step:last-child{border-bottom:0}
+.step .lbl{font-family:var(--mono); font-size:.78rem; letter-spacing:.04em; color:var(--ink-2)}
+.step pre{margin:8px 0 0; font-family:var(--mono); font-size:.8rem; color:var(--ink); white-space:pre-wrap; word-break:break-word}
+.step pre .m{color:var(--stamp-ink)}
+.notes{font-size:.95rem; color:var(--ink-2)}
+.notes h3{font-family:var(--display); font-weight:700; font-size:1.2rem; letter-spacing:-.02em; margin:0 0 10px}
+.notes p{margin:0 0 14px} .notes code{font-family:var(--mono); font-size:.84em; background:var(--paper-sink); padding:1px 5px; border-radius:2px}
+.notes a{color:var(--stamp-ink); text-underline-offset:3px}
+
+/* closing */
+.closer{text-align:center; padding-top:132px; padding-bottom:132px; border-top:1px solid var(--rule); position:relative; overflow:hidden}
+.closer h2{font-size:clamp(2.3rem,6vw,4.6rem)}
+.closer h2 em{font-style:normal;color:var(--stamp-ink)}
+.closer p{margin:20px auto 0; color:var(--ink-2); max-width:46ch}
+.closer .cta{justify-content:center}
+
+/* footer */
+footer{border-top:1px solid var(--rule); padding-block:34px; color:var(--ink-3)}
+footer .wrap{display:flex; align-items:center; gap:18px; flex-wrap:wrap; font-family:var(--mono); font-size:.72rem; letter-spacing:.03em}
+footer .brand{font-size:1rem}
+footer a{color:var(--ink-2); text-decoration:none}
+footer a:hover{color:var(--stamp-ink)}
+footer .sp{margin-left:auto}
+@media(max-width:880px){.hero .wrap{grid-template-columns:1fr; gap:38px}.decl{max-width:560px}.stamp{width:124px;height:124px;right:-10px;top:-24px}}
+@media(max-width:640px){.band{padding-top:58px;padding-bottom:58px}.closer{padding-top:84px;padding-bottom:84px}.hero{padding-top:52px}.htop .note{text-align:left}.install{max-width:100%}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Loupe home">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <clipPath id="lg"><circle cx="24" cy="24" r="11.5"/></clipPath>
+        <line x1="34" y1="34" x2="39.5" y2="39.5" stroke="#9B2D43" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="39" y1="39" x2="52" y2="52" stroke="#6E1423" stroke-width="12" stroke-linecap="round"/>
+        <line x1="42.5" y1="42.5" x2="49.5" y2="49.5" stroke="#E0556B" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>
+        <circle cx="24" cy="24" r="17" fill="#9B2D43"/>
+        <circle cx="24" cy="24" r="11.5" fill="#F6E4E8"/>
+        <g clip-path="url(#lg)"><path d="M11 29 L29 11" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".55"/></g>
+      </svg>
+      loupe
+    </a>
+    <nav class="nav">
+      <a href="#checkpoint">Checkpoint</a>
+      <a href="#tools">Tools</a>
+      <a href="#ai">AI</a>
+      <a href="#install">Install</a>
+      <button class="iconbtn" id="theme" aria-label="Switch theme" title="Switch light / dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+      </button>
+      <a class="gh" href="https://github.com/0xdak/loupe">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="wrap">
+    <div class="lede">
+      <h1>Every request,<br>held for <em>inspection.</em></h1>
+      <p class="deck"><b>Loupe</b> is an intercepting HTTP(S) proxy with a Burp-style web interface. One binary, the standard library only, with a local-first AI you choose yourself.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/0xdak/loupe">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.7 22c.5.1.7-.2.7-.5v-2c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.6.3-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .3.3.7 1 .7 2v3c0 .3.2.6.7.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+      <div class="install">
+        <code>git clone https://github.com/0xdak/loupe &amp;&amp; cd loupe &amp;&amp; go build ./cmd/loupe</code>
+        <button class="cp" data-copy="git clone https://github.com/0xdak/loupe &amp;&amp; cd loupe &amp;&amp; go build ./cmd/loupe" aria-label="Copy install command">COPY</button>
+      </div>
+      <div class="trust">
+        <span>Single binary</span><span>No dependencies</span><span>Local HTTPS</span><span>Open source</span>
+      </div>
+    </div>
+
+    <div class="decl" aria-label="A held request, stamped inspected">
+      <div class="stamp" aria-hidden="true">
+        <svg viewBox="0 0 160 160">
+          <defs><path id="ring" d="M80,80 m-58,0 a58,58 0 1,1 116,0 a58,58 0 1,1 -116,0"/></defs>
+          <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="3"/>
+          <circle cx="80" cy="80" r="43" fill="none" stroke="currentColor" stroke-width="2"/>
+          <text font-family="Martian Mono, monospace" font-size="11.5" font-weight="600" letter-spacing="2.4" fill="currentColor">
+            <textPath href="#ring" startOffset="2%">LOUPE ★ INSPECTED ★ 127.0.0.1:8080 ★ HELD ★</textPath>
+          </text>
+          <text x="80" y="87" text-anchor="middle" font-family="Archivo Expanded, sans-serif" font-size="18.5" font-weight="800" letter-spacing=".5" fill="currentColor">INSPECTED</text>
+        </svg>
+      </div>
+      <div class="hd">
+        <span class="no">FLOW <b>#0042</b> · PROXY HISTORY</span>
+        <span class="verdict">● HELD</span>
+      </div>
+      <div class="fieldrow"><div class="k">Host</div><div class="v">api.target.test <span class="mut">:443 (TLS)</span></div></div>
+      <div class="fieldrow"><div class="k">Scope</div><div class="v">*.target.test <span class="mut">· in scope</span></div></div>
+      <div class="raw"><span class="m">POST</span> <span class="h">/api/v2/login</span> HTTP/1.1
+Host: api.target.test
+Content-Type: application/json
+Authorization: Bearer eyJhbGciОi…
+Cookie: session=7f3c…a19
+
+{"user":"admin","pass":"••••••••"}
+
+<span class="s">HTTP/1.1 200 OK</span>
+Set-Cookie: auth=1; HttpOnly
+X-Ratelimit-Remaining: 284</div>
+      <div class="ft">
+        <span class="chip on">Forward ⌃F</span>
+        <span class="chip">Drop ⌃D</span>
+        <span class="chip">Repeater ⌃R</span>
+        <span class="chip">Ask AI ⌃J</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CHECKPOINT ── -->
+<section class="band" id="checkpoint">
+  <div class="wrap">
+    <div class="htop">
+      <h2>Man the line between client and server.</h2>
+      <p class="note">Only in-scope hosts are held. Static files and browser noise pass straight through.</p>
+    </div>
+    <div class="stations">
+      <div class="station">
+        <span class="seg">01 · Hold</span>
+        <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
+        <h3>Intercept</h3>
+        <p>Catch requests, and responses too, before they pass. Edit them in place, then forward or drop.</p>
+      </div>
+      <div class="station">
+        <span class="seg">02 · Examine</span>
+        <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg></div>
+        <h3>Inspect</h3>
+        <p>Pretty, raw and hex views of every message, with the decoded response and original-vs-edited side by side.</p>
+      </div>
+      <div class="station">
+        <span class="seg">03 · Rule</span>
+        <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h16M4 17h8"/><path d="M17 5.5 19 7.5 17 9.5"/></svg></div>
+        <h3>Match &amp; replace</h3>
+        <p>Rewrite headers, bodies and first lines, literal or regex, across all proxy traffic before intercept.</p>
+      </div>
+      <div class="station">
+        <span class="seg">04 · Log</span>
+        <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
+        <h3>History</h3>
+        <p>Every flow recorded, sortable and filterable. Send any one to Repeater, Intruder or Decoder.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TOOLS MANIFEST ── -->
+<section class="band" id="tools">
+  <div class="wrap">
+    <div class="htop">
+      <h2>The whole bench, declared.</h2>
+      <p class="note">Burp's layout and names, so you already know where everything is.</p>
+    </div>
+    <div class="manifest">
+      <div class="item">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12l-2.5-2.5M20 16H8l2.5 2.5"/></svg></span>
+        <span class="nm">Repeater</span>
+        <span class="ds">Edit a request, fire it again, and step through everything each tab has sent.</span>
+        <span class="cd">⌃R · numbered tabs</span>
+      </div>
+      <div class="item">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.3"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke-linecap="round"/></svg></span>
+        <span class="nm">Intruder</span>
+        <span class="ds">Sniper, Battering ram, Pitchfork and Cluster bomb, with payload positions, concurrency and delay.</span>
+        <span class="cd">⌃I · §…§ positions</span>
+      </div>
+      <div class="item">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 4 12l5 7M15 5l5 7-5 7"/></svg></span>
+        <span class="nm">Decoder</span>
+        <span class="ds">Chained decode, encode and hash across URL, Base64, hex, gzip, JWT and the SHA family, with smart decode.</span>
+        <span class="cd">URL · b64 · JWT · SHA</span>
+      </div>
+      <div class="item">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h12M3 18h12"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/></svg></span>
+        <span class="nm">WebSockets</span>
+        <span class="ds">Watch the messages of every WebSocket connection that passes through the proxy.</span>
+        <span class="cd">live history</span>
+      </div>
+      <div class="item">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 6v6c0 5 3.4 8 8 9.5 4.6-1.5 8-4.5 8-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <span class="nm">Scope &amp; HTTPS</span>
+        <span class="ds">Decrypt HTTPS on the fly with a local CA; hold only the hosts you put in scope.</span>
+        <span class="cd">local CA · *.host</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── AI ── -->
+<section class="band" id="ai">
+  <div class="wrap ai">
+    <div class="providers" role="list" aria-label="AI providers, the active one struck forward">
+      <div class="prov ghost" role="listitem"><span class="dot"></span><span class="pn">Auto</span><span class="pd">detects</span></div>
+      <div class="prov active" role="listitem"><span class="dot"></span><span class="pn">Ollama</span><span class="pd">local</span><span class="struck">In use</span></div>
+      <div class="prov ghost" role="listitem"><span class="dot"></span><span class="pn">Claude Code</span><span class="pd">local CLI</span></div>
+      <div class="prov ghost" role="listitem"><span class="dot"></span><span class="pn">OpenAI-compatible</span><span class="pd">any endpoint</span></div>
+    </div>
+    <div class="copy">
+      <h2>Pick the inspector.</h2>
+      <p>The assistant reads one request and its response and reasons about it with you. Choose the backend right in the interface, with <b>⚙ Model</b>, and switch any time.</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg><span><b>Local-first & private.</b> A local Ollama model or the Claude Code CLI keeps traffic and keys on your machine; keys are never sent back to the browser.</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg><span><b>Proposes real requests.</b> When it suggests a test, it writes a complete raw HTTP request. One click sends it through the proxy and feeds the real response back.</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg><span><b>Yours to steer.</b> Push a proposal straight to Repeater or Intruder; the AI never fires a payload on its own.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── INSTALL ── -->
+<section class="band installband" id="install">
+  <div class="wrap">
+    <div class="htop"><h2>Clear it through in a minute.</h2>
+      <p class="note">Windows, macOS (Intel &amp; Apple Silicon) and Linux.</p></div>
+    <div class="grid">
+      <div class="steps">
+        <div class="step"><div class="lbl">1 · Get the source</div><pre>git clone https://github.com/0xdak/loupe
+cd loupe</pre></div>
+        <div class="step"><div class="lbl">2 · Build the binary</div><pre>go build <span class="m">./cmd/loupe</span></pre></div>
+        <div class="step"><div class="lbl">3 · Run it</div><pre>./loupe</pre></div>
+      </div>
+      <div class="notes">
+        <h3>What happens next</h3>
+        <p>The proxy (<code>127.0.0.1:8080</code>) and the web interface (<code>127.0.0.1:8081</code>) start together, and the interface opens in your browser.</p>
+        <p>Click <b>Open browser</b> to launch a profile that already trusts Loupe's certificate, so HTTPS is decrypted with nothing to install. Or point any client at the proxy and import the CA from <b>Proxy settings</b>.</p>
+        <p>Cross-compile for any target with <code>GOOS</code> / <code>GOARCH</code>. Full flags and notes live in the <a href="https://github.com/0xdak/loupe#readme">README</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CLOSER ── -->
+<section class="closer">
+  <div class="wrap">
+    <h2>Put your traffic<br>under the <em>loupe.</em></h2>
+    <p>One binary. No dependencies. A Burp-class workflow and a local AI that answer only to you.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/0xdak/loupe">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.7 22c.5.1.7-.2.7-.5v-2c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.6.3-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .3.3.7 1 .7 2v3c0 .3.2.6.7.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="brand" style="display:flex;align-items:center;gap:8px">
+      <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><line x1="34" y1="34" x2="39.5" y2="39.5" stroke="#9B2D43" stroke-width="7.5" stroke-linecap="round"/><line x1="39" y1="39" x2="52" y2="52" stroke="#6E1423" stroke-width="12" stroke-linecap="round"/><circle cx="24" cy="24" r="17" fill="#9B2D43"/><circle cx="24" cy="24" r="11.5" fill="#F6E4E8"/></svg>
+      loupe
+    </span>
+    <span>Go · standard library only</span>
+    <span class="sp"><a href="https://github.com/0xdak/loupe">github.com/0xdak/loupe</a> · by <a href="https://github.com/0xdak">0xdak</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root=document.documentElement, k="loupe.theme";
+  try{var s=localStorage.getItem(k); if(s)root.setAttribute("data-theme",s);}catch(e){}
+  document.getElementById("theme").addEventListener("click",function(){
+    var cur=root.getAttribute("data-theme");
+    if(!cur)cur=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";
+    var next=cur==="dark"?"light":"dark";
+    root.setAttribute("data-theme",next);
+    try{localStorage.setItem(k,next);}catch(e){}
+  });
+  document.querySelectorAll("[data-copy]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var t=b.getAttribute("data-copy").replace(/&amp;/g,"&");
+      navigator.clipboard&&navigator.clipboard.writeText(t).then(function(){
+        var o=b.textContent; b.textContent="COPIED"; setTimeout(function(){b.textContent=o;},1400);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

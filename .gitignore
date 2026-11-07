@@ -24,3 +24,7 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# impeccable design-tool scaffolding (not product source)
+.impeccable/
+PRODUCT.md
