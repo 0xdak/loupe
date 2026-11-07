@@ -17,14 +17,20 @@ function repSave() {
 }
 const repTab = () => rep.tabs.find((t) => t.id === rep.active);
 
-function sendToRepeater(target, raw) {
+// sendToRepeater stages a request in a new tab. By default it focuses that tab
+// and announces it; pass {focus:false} to stage quietly (e.g. auto-staging an
+// AI proposal) without pulling the view to Repeater, and {quiet:true} to skip
+// the toast. Returns the new tab id.
+function sendToRepeater(target, raw, opts) {
+  opts = opts || {};
   const t = { id: rep.next++, target, raw };
   rep.tabs.push(t);
-  rep.active = t.id;
+  if (opts.focus !== false) rep.active = t.id;
   repSave();
-  flash("repeater");
+  if (opts.focus !== false) flash("repeater");
   renderRepeater();
-  toast("Sent to Repeater (tab " + t.id + ").");
+  if (!opts.quiet) toast("Sent to Repeater (tab " + t.id + ").");
+  return t.id;
 }
 
 function renderRepeater() {

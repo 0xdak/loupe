@@ -101,6 +101,7 @@ function renderAsk() {
   $("asCtx").textContent = chat ? chat.ctx.title : "";
   $("asCtx").title = chat ? chat.ctx.title : "";
   const box = $("asMsgs");
+  const prevTop = box.scrollTop;
   const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
   box.textContent = "";
   if (!app.info.assistant) {
@@ -117,7 +118,10 @@ function renderAsk() {
   const busy = !!chat?.abort;
   for (const [label, q] of CHIPS) chips.append(h("button", { class: "chip", disabled: busy || !chat || !app.info.assistant, onclick: () => sendAsk(q, label) }, label));
   $("asSend").textContent = busy ? "Stop" : "Send";
-  if (stick || busy) box.scrollTop = box.scrollHeight;
+  // Follow the stream only when the reader is already at the bottom. If they
+  // scrolled up to read while the answer is still being written, keep their
+  // position instead of yanking them back down.
+  box.scrollTop = stick ? box.scrollHeight : prevTop;
 }
 
 function renderChatList() {
@@ -157,6 +161,38 @@ function bubble(m, ctx) {
 function langSuffix() {
   const l = ask.lang === "auto" ? (navigator.language || "en").slice(0, 2) : ask.lang;
   return l === "tr" ? "\n\n(Türkçe cevap ver.)" : "";
+}
+
+// extractRequests pulls every complete raw HTTP request out of an answer's
+// code blocks (the same shape codeBlock() marks sendable), de-duplicated, so
+// each proposal can be staged in Repeater without the human clicking.
+function extractRequests(text) {
+  const re = /```([\w-]*)[^\n]*\n?([\s\S]*?)(?:```|$)/g;
+  const out = [];
+  let m;
+  while ((m = re.exec(text))) {
+    const code = m[2].replace(/\n$/, "");
+    if (/^[A-Z]+ \S+ HTTP\/[\d.]+/.test(code.trimStart())) {
+      out.push(code.trimStart().replace(/\r?\n/g, "\r\n") + (/\r?\n\r?\n/.test(code) ? "" : "\r\n\r\n"));
+    }
+    if (m[0].length === 0) break;
+  }
+  return [...new Set(out)];
+}
+
+// stageRequests quietly opens a Repeater tab for each request an answer
+// proposed, without pulling the view away from the conversation, and flashes
+// the Repeater tab once so the human sees they are ready to send.
+function stageRequests(ctx, answer) {
+  if (answer.error || answer.staged) return;
+  const reqs = extractRequests(answer.text);
+  if (!reqs.length) return;
+  answer.staged = true;
+  const ids = reqs.map((r) => sendToRepeater(ctx.target, r, { focus: false, quiet: true }));
+  flash("repeater");
+  toast(ids.length === 1
+    ? `Prepared in Repeater (tab ${ids[0]}).`
+    : `${ids.length} requests prepared in Repeater (tabs ${ids[0]}–${ids[ids.length - 1]}).`);
 }
 
 // sendAsk asks a question in the open conversation. Conversations stream
@@ -206,6 +242,7 @@ async function sendAsk(text, label) {
     answer.pending = false;
     chat.abort = null;
     chat.updated = Date.now();
+    stageRequests(c, answer); // auto-prepare any proposed request in Repeater
     saveChats();
     if (visible()) renderAsk(); else updateChatsButton();
     if (!visible() && !answer.error) toast(aiName() + " answered: " + chat.ctx.title.slice(0, 80));
