@@ -116,6 +116,21 @@ $("repNext").addEventListener("click", () => repStep(1));
 $("repTarget").addEventListener("input", (e) => { const t = repTab(); if (t) { t.target = e.target.value.trim(); repSave(); } });
 repPair.req.onInput = () => { const t = repTab(); if (t) { t.raw = repPair.req.getText(); repSave(); } };
 
+// addRepeaterToPoc collects the current request, with its latest response if any,
+// as a PoC step.
+function addRepeaterToPoc() {
+  const t = repTab(), run = rep.runs.get(t.id), cur = run && run.list[run.pos], d = cur && cur.d;
+  const reqText = repPair.req.getText();
+  const first = reqText.split(/\r?\n/)[0].split(" ");
+  const method = first[0] || "GET", path = first[1] || "/";
+  const base = (t.target || "").replace(/\/$/, "");
+  addToPoc({
+    id: null, method, url: base + path, target: t.target,
+    request: bytesToB64(textToBytes(reqText)),
+    response: d ? d.response : "", responseDecoded: d ? d.responseDecoded : "", ms: d ? d.ms : 0,
+  });
+}
+
 $("repPair").addEventListener("contextmenu", (e) => {
   const inReq = repPair.req.el.contains(e.target);
   const v = inReq ? repPair.req : repPair.resp;
@@ -125,6 +140,7 @@ $("repPair").addEventListener("contextmenu", (e) => {
     { label: "Send", key: "Ctrl+Space", disabled: !inReq, action: repSend },
     { label: "Send to Intruder", key: "Ctrl+I", disabled: !inReq, action: () => sendToIntruder(t.target, repPair.req.getText()) },
     { label: sel ? "Send selection to Decoder" : "Send to Decoder", action: () => sendToDecoder(sel || v.getText()) },
+    { label: "⊕ Add to PoC", action: () => addRepeaterToPoc() },
     "-",
     { label: "Copy as curl command", disabled: !inReq, action: () => copyText(toCurl(repPair.req.getText(), t.target), "curl command") },
   ]);

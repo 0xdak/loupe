@@ -285,3 +285,25 @@ button:focus:not(:focus-visible), .tree .node:focus:not(:focus-visible) { outlin
     transition-duration: .001ms !important; scroll-behavior: auto !important;
   }
 }
+
+/* ── PoC builder ── */
+#pocCount:empty { display: none; }
+#pocWin .win { grid-template-rows: auto minmax(0, 1fr); }
+.poc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; background: var(--panel); }
+.poc-left { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+.poc-form { padding: 14px 16px 6px; align-items: start; }
+.poc-form textarea { font: 12px/1.5 var(--sans, inherit); resize: vertical; }
+.poc-lbl { padding: 2px 16px; margin: 6px 0 2px; }
+.poc-list { overflow: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.poc-step { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--alt); }
+.poc-step .poc-ord { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; background: var(--accent); color: #fff; border-radius: 3px; font-size: 12px; font-weight: 600; }
+.poc-step .poc-meta { flex: 1; min-width: 0; }
+.poc-line1 { font: 12px/1.3 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.poc-line2 { font-size: 11px; margin-top: 2px; }
+.poc-proof { font-size: 11.5px; }
+.poc-right { overflow: auto; padding: 14px 16px; background: var(--chrome); min-height: 0; }
+/* The card is laid out off-screen so it can be rasterized; the PNG shows in .poc-shot. */
+.poc-card-host { position: fixed; left: -10000px; top: 0; width: 720px; pointer-events: none; }
+.poc-shot img { display: block; }
+.poc-frameHost { margin-top: 10px; }
+.poc-iframe { width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }

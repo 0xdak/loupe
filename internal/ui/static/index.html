@@ -118,6 +118,7 @@
       <label class="check"><input type="checkbox" id="hHideStatic" checked> Hide CSS, images and binary</label>
       <div class="spacer"></div>
       <span class="muted" id="hCount"></span>
+      <button id="pocOpen" title="Collect requests (right-click → Add to PoC), then build a proof-of-concept">⊕ PoC <span class="count" id="pocCount"></span></button>
       <button id="hClear" title="Clear the list (the history file is kept)">Clear</button>
     </div>
     <div class="grid-wrap" id="hWrap">
@@ -377,7 +378,39 @@
   </div>
 </div>
 
+<div class="overlay" id="pocWin" hidden>
+  <div class="win">
+    <div class="win-head">
+      <b>PoC builder</b>
+      <div class="spacer"></div>
+      <button class="btn" id="pocCopyCurl" title="Copy a bash script that replays every step with curl">Copy curl script</button>
+      <button class="btn" id="pocSavePng" title="Save the auto-captured screenshot as a PNG">Save screenshot</button>
+      <button class="btn primary" id="pocSaveHtml" title="Save a self-contained HTML proof-of-concept report">Download PoC</button>
+      <button class="btn" id="pocClear" title="Remove every collected step">Clear</button>
+      <button class="btn" id="pocClose">Close</button>
+    </div>
+    <div class="poc-body">
+      <div class="poc-left">
+        <div class="form poc-form">
+          <label for="pocTitle">Finding</label><input type="text" id="pocTitle" placeholder="e.g. Reflected XSS in search parameter" spellcheck="false">
+          <label for="pocSeverity">Severity</label>
+          <select id="pocSeverity"><option>Info</option><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select>
+          <label for="pocDesc">Summary</label><textarea id="pocDesc" rows="3" placeholder="What the issue is, impact, and how these steps prove it."></textarea>
+        </div>
+        <p class="lbl poc-lbl">Steps (in order — pick the response that is the visual proof)</p>
+        <div id="pocSteps" class="poc-list"></div>
+      </div>
+      <div class="poc-right">
+        <div id="pocCardHost" class="poc-card-host"></div>
+        <div id="pocShot" class="poc-shot"></div>
+        <div id="pocFrame" class="poc-frameHost"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="js/core.js"></script>
+<script src="js/poc.js"></script>
 <script src="js/proxy.js"></script>
 <script src="js/target.js"></script>
 <script src="js/repeater.js"></script>

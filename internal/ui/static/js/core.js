@@ -410,6 +410,7 @@ function flowMenu(e, f, getDetail) {
     { label: "Send to Repeater", key: "Ctrl+R", disabled: !http, action: async () => { const d = await getDetail(); sendToRepeater(targetURL(d), bytesToText(b64ToBytes(d.request))); } },
     { label: "Send to Intruder", key: "Ctrl+I", disabled: !http, action: async () => { const d = await getDetail(); sendToIntruder(targetURL(d), bytesToText(b64ToBytes(d.request))); } },
     { label: "Send to Decoder", action: async () => { const d = await getDetail(); sendToDecoder(bytesToText(b64ToBytes(d.request))); } },
+    { label: "⊕ Add to PoC", disabled: !http, action: async () => addToPoc(await getDetail()) },
     "-",
     inScope ? { label: "Remove from scope", action: () => setScope(app.scope.filter((p) => p !== host)).then(() => toast(host + " removed from scope.")) }
       : { label: "Add to scope", disabled: !host, action: () => setScope([...app.scope, host]).then(() => toast(host + " added to scope.")).catch((err) => toast(err.message, true)) },
