@@ -391,19 +391,32 @@
     </div>
     <div class="poc-body">
       <div class="poc-left">
-        <div class="form poc-form">
-          <label for="pocTitle">Finding</label><input type="text" id="pocTitle" placeholder="e.g. Reflected XSS in search parameter" spellcheck="false">
-          <label for="pocSeverity">Severity</label>
-          <select id="pocSeverity"><option>Info</option><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select>
-          <label for="pocDesc">Summary</label><textarea id="pocDesc" rows="3" placeholder="What the issue is, impact, and how these steps prove it."></textarea>
+        <div class="poc-form">
+          <label class="poc-field">Finding
+            <input type="text" id="pocTitle" placeholder="e.g. Reflected XSS in search parameter" spellcheck="false"></label>
+          <div class="poc-field-row">
+            <label class="poc-field">Severity
+              <select id="pocSeverity"><option>Info</option><option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option></select></label>
+          </div>
+          <label class="poc-field">Summary
+            <textarea id="pocDesc" rows="3" placeholder="What the issue is, its impact, and how these steps prove it."></textarea></label>
         </div>
-        <p class="lbl poc-lbl">Steps (in order — pick the response that is the visual proof)</p>
+        <div class="poc-steps-head">
+          <span class="lbl">Steps</span>
+          <span class="muted small">in order — ● marks the proof response</span>
+        </div>
         <div id="pocSteps" class="poc-list"></div>
       </div>
       <div class="poc-right">
+        <div class="poc-pane">
+          <div class="poc-pane-head"><span class="lbl">Report cover</span><span class="muted small">auto screenshot, saved with the PoC</span></div>
+          <div id="pocShot" class="poc-shot"></div>
+        </div>
+        <div class="poc-pane" id="pocFramePane" hidden>
+          <div class="poc-pane-head"><span class="lbl">Rendered proof response</span><span class="muted small">sandboxed · scripts disabled</span></div>
+          <div id="pocFrame" class="poc-frameHost"></div>
+        </div>
         <div id="pocCardHost" class="poc-card-host"></div>
-        <div id="pocShot" class="poc-shot"></div>
-        <div id="pocFrame" class="poc-frameHost"></div>
       </div>
     </div>
   </div>

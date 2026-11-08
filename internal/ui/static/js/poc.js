@@ -166,36 +166,37 @@ async function nodeToPng(node, scale = 2) {
 }
 
 let pocPng = ""; // last captured screenshot data URL
+let pocRenderSeq = 0; // discards stale async renders so previews never duplicate
 async function renderPocPreview() {
-  const host = $("pocCardHost");
-  host.textContent = "";
+  const my = ++pocRenderSeq;
+  const host = $("pocCardHost"), shot = $("pocShot"), frameHost = $("pocFrame");
+  host.textContent = ""; shot.textContent = ""; frameHost.textContent = "";
   const card = buildCard();
   host.append(card);
   // Capture the PNG automatically from the rendered card.
-  const shot = $("pocShot");
-  shot.textContent = "";
   try {
-    pocPng = await nodeToPng(card, Math.min(2, window.devicePixelRatio || 1) * 2);
-    const img = h("img", { src: pocPng, alt: "PoC screenshot", style: "max-width:100%;border:1px solid var(--line);border-radius:3px;" });
-    shot.append(h("div", { class: "muted small", style: "margin-bottom:4px;" }, "Auto screenshot (saved with the report):"), img);
+    const png = await nodeToPng(card, Math.min(2, window.devicePixelRatio || 1) * 2);
+    if (my !== pocRenderSeq) return; // a newer render started; drop this one
+    pocPng = png;
+    shot.append(h("img", { src: pocPng, alt: "PoC screenshot", style: "display:block;width:100%;border:1px solid var(--line);border-radius:4px;" }));
   } catch {
+    if (my !== pocRenderSeq) return;
     pocPng = "";
     shot.append(h("div", { class: "muted small" }, "Screenshot could not be captured in this browser; the HTML report still includes the rendered response."));
   }
   // Live render of the proof response, if it looks like HTML.
-  const frameHost = $("pocFrame");
-  frameHost.textContent = "";
   const s = proofStep();
   const full = messageText(s.resp, s.respDec);
   const ct = headerOf(full, "content-type").toLowerCase();
   const [, body] = splitMessage(full);
   const looksHtml = ct.includes("html") || /<(!doctype|html|body|div|table|h1|p)\b/i.test(body.slice(0, 500));
+  const pane = $("pocFramePane");
   if (looksHtml && body.trim()) {
-    frameHost.append(h("div", { class: "muted small", style: "margin:8px 0 4px;" }, "Rendered proof response (sandboxed, scripts disabled):"));
     const iframe = h("iframe", { class: "poc-iframe", sandbox: "", title: "Rendered proof response" });
     iframe.srcdoc = renderBody(body, s.url);
     frameHost.append(iframe);
-  }
+    if (pane) pane.hidden = false;
+  } else if (pane) pane.hidden = true;
 }
 
 // renderBody prepares a response body for a sandboxed iframe: a <base> so the
@@ -332,7 +333,11 @@ function initPoc() {
   });
   $("pocTitle")?.addEventListener("input", (e) => { poc.title = e.target.value; pocSave(); });
   $("pocSeverity")?.addEventListener("change", (e) => { poc.severity = e.target.value; pocSave(); renderPocPreview(); });
-  $("pocDesc")?.addEventListener("input", (e) => { poc.desc = e.target.value; pocSave(); renderPocPreview(); });
+  let descTimer = 0;
+  $("pocDesc")?.addEventListener("input", (e) => {
+    poc.desc = e.target.value; pocSave();
+    clearTimeout(descTimer); descTimer = setTimeout(renderPocPreview, 250);
+  });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("pocWin").hidden) closePoc(); });
 }
 initPoc();

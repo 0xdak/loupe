@@ -289,21 +289,33 @@ button:focus:not(:focus-visible), .tree .node:focus:not(:focus-visible) { outlin
 /* ── PoC builder ── */
 #pocCount:empty { display: none; }
 #pocWin .win { grid-template-rows: auto minmax(0, 1fr); }
-.poc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; background: var(--panel); }
-.poc-left { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
-.poc-form { padding: 14px 16px 6px; align-items: start; }
-.poc-form textarea { font: 12px/1.5 var(--sans, inherit); resize: vertical; }
-.poc-lbl { padding: 2px 16px; margin: 6px 0 2px; }
-.poc-list { overflow: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
-.poc-step { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--alt); }
-.poc-step .poc-ord { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; background: var(--accent); color: #fff; border-radius: 3px; font-size: 12px; font-weight: 600; }
+.poc-body { display: grid; grid-template-columns: minmax(340px, 400px) minmax(0, 1fr); min-height: 0; background: var(--panel); }
+.poc-left { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--alt); }
+.poc-form { padding: 16px 18px 10px; display: flex; flex-direction: column; gap: 12px; }
+.poc-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.poc-field input, .poc-field select, .poc-field textarea {
+  font: 13px/1.5 var(--sans, system-ui, sans-serif); text-transform: none; letter-spacing: 0; color: var(--text);
+  padding: 7px 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--field); width: 100%; }
+.poc-field textarea { resize: vertical; min-height: 58px; }
+.poc-field-row { display: flex; gap: 12px; }
+.poc-field-row .poc-field { flex: 0 0 160px; }
+.poc-steps-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 18px 6px; border-top: 1px solid var(--line); }
+.poc-steps-head .lbl { margin: 0; }
+.poc-list { overflow: auto; padding: 2px 18px 18px; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.poc-step { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); }
+.poc-step:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.poc-step .poc-ord { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; background: var(--accent); color: #fff; border-radius: 4px; font-size: 12px; font-weight: 700; }
 .poc-step .poc-meta { flex: 1; min-width: 0; }
-.poc-line1 { font: 12px/1.3 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.poc-line1 { font: 12px/1.35 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .poc-line2 { font-size: 11px; margin-top: 2px; }
-.poc-proof { font-size: 11.5px; }
-.poc-right { overflow: auto; padding: 14px 16px; background: var(--chrome); min-height: 0; }
+.poc-step .poc-proof { font-size: 11px; color: var(--muted); gap: 3px; }
+.poc-step .btn { padding: 2px 7px; }
+.poc-right { overflow: auto; padding: 16px 20px; background: var(--chrome); min-height: 0; display: flex; flex-direction: column; gap: 18px; }
+.poc-pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.poc-pane-head .lbl { margin: 0; }
+.poc-shot { max-width: 560px; }
+.poc-shot img { display: block; width: 100%; }
 /* The card is laid out off-screen so it can be rasterized; the PNG shows in .poc-shot. */
 .poc-card-host { position: fixed; left: -10000px; top: 0; width: 720px; pointer-events: none; }
-.poc-shot img { display: block; }
-.poc-frameHost { margin-top: 10px; }
-.poc-iframe { width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
+.poc-frameHost { max-width: 760px; }
+.poc-iframe { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
