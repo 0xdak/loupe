@@ -125,8 +125,20 @@ function buildCard() {
   const mono = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
   const sans = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
   const box = (style, ...kids) => h("div", { style }, ...kids);
+  // A labeled message block showing the full text. Very large bodies are capped
+  // so the rasterized canvas stays within the browser's limits; the complete
+  // text is always in the downloadable HTML report.
+  const msgBlock = (label, text, cap) => {
+    let t = text || "(empty)";
+    let note = "";
+    if (t.length > cap) { t = t.slice(0, cap); note = "\n\n… truncated in this image — the full text is in the downloaded PoC report."; }
+    return box("margin-top:12px;",
+      box("font-size:11px;color:#8A817C;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;", label),
+      box(`font-family:${mono};font-size:11px;line-height:1.45;color:#C9C3BF;background:#1B1515;border:1px solid #3A3031;border-radius:3px;padding:10px 12px;white-space:pre-wrap;word-break:break-all;`, t),
+      note ? box(`font-family:${mono};font-size:11px;color:#B5384F;margin-top:4px;`, note.trim()) : null);
+  };
   const card = box(
-    `width:720px;box-sizing:border-box;padding:22px 24px;background:#141011;color:#FAFAF8;font-family:${sans};`,
+    `width:760px;box-sizing:border-box;padding:22px 24px;background:#141011;color:#FAFAF8;font-family:${sans};`,
     box("display:flex;align-items:center;gap:10px;margin-bottom:14px;",
       box(`display:inline-block;padding:3px 10px;border-radius:3px;background:${sevBg};color:#fff;font-weight:700;font-size:12px;letter-spacing:.04em;`, poc.severity.toUpperCase()),
       box("font-size:12px;color:#8A817C;font-family:" + mono + ";", "loupe · proof of concept")),
@@ -134,10 +146,10 @@ function buildCard() {
     box("font-size:12.5px;color:#E0556B;font-family:" + mono + ";margin-bottom:14px;word-break:break-all;", s.method + " " + s.url),
     poc.desc ? h("div", { style: "font-size:13px;line-height:1.5;color:#D8D2CE;margin-bottom:14px;white-space:pre-wrap;" }, poc.desc) : null,
     box("border-top:1px solid #3A3031;padding-top:12px;",
-      box("font-size:11px;color:#8A817C;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;", `${poc.steps.length} step${poc.steps.length > 1 ? "s" : ""} · proof response`),
-      box(`font-family:${mono};font-size:12px;color:#B5384F;margin-bottom:6px;`, s.status ? "HTTP " + s.status + (s.ms ? "  ·  " + s.ms + " ms" : "") : "no response captured"),
-      box(`font-family:${mono};font-size:11.5px;line-height:1.45;color:#C9C3BF;background:#1B1515;border:1px solid #3A3031;border-radius:3px;padding:10px 12px;max-height:150px;overflow:hidden;white-space:pre-wrap;word-break:break-all;`,
-        (messageText(s.resp, s.respDec) || "(no response body)").slice(0, 900))),
+      box("font-size:11px;color:#8A817C;letter-spacing:.06em;text-transform:uppercase;",
+        `${poc.steps.length} step${poc.steps.length > 1 ? "s" : ""} · proof: ${s.method}${s.status ? "  ·  HTTP " + s.status : ""}${s.ms ? "  ·  " + s.ms + " ms" : ""}`),
+      msgBlock("Request", messageText(s.req), 16000),
+      msgBlock("Response", messageText(s.resp, s.respDec), 48000)),
     box("margin-top:14px;font-size:11px;color:#6E655F;font-family:" + mono + ";", "Generated with Loupe — github.com/0xdak/loupe"));
   return card;
 }

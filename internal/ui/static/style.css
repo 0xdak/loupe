@@ -316,7 +316,7 @@ button:focus:not(:focus-visible), .tree .node:focus:not(:focus-visible) { outlin
 .poc-shot { max-width: 560px; }
 .poc-shot img { display: block; width: 100%; }
 /* The card is laid out off-screen so it can be rasterized; the PNG shows in .poc-shot. */
-.poc-card-host { position: fixed; left: -10000px; top: 0; width: 720px; pointer-events: none; }
+.poc-card-host { position: fixed; left: -10000px; top: 0; width: 760px; pointer-events: none; }
 .poc-frameHost { max-width: 760px; }
 .poc-iframe { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
 
