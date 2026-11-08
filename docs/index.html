@@ -94,6 +94,10 @@ p{margin:0}
 .btn.primary{background:var(--stamp-deep); color:#fff; box-shadow:0 10px 24px -14px var(--stamp-deep)}
 .btn.primary:hover{background:var(--stamp-hover); transform:translateY(-2px)}
 .btn.primary svg{width:17px;height:17px}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--rule-2)}
+.btn.ghost:hover{border-color:var(--stamp); color:var(--stamp); transform:translateY(-2px)}
+.btn.ghost svg{width:17px;height:17px}
+.btn.primary .play{width:0;height:0;border-left:11px solid #fff;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-right:-2px}
 .install{margin-top:22px; display:flex; align-items:stretch; max-width:460px; border:1px solid var(--rule-2); border-radius:4px; background:var(--paper-2); overflow:hidden}
 .install code{font-family:var(--mono); font-size:.78rem; color:var(--ink); padding:12px 14px; overflow-x:auto; white-space:nowrap; flex:1}
 .install .cp{appearance:none;border:0;border-left:1px solid var(--rule-2); background:transparent; color:var(--ink-2); cursor:pointer; padding:0 14px; font-family:var(--mono); font-size:.72rem}
@@ -244,7 +248,8 @@ footer .sp{margin-left:auto}
       <h1>Chart the line<br>between <span class="ln">client</span> and <span class="ln">server</span>.</h1>
       <p class="deck"><b>Loupe</b> is an intercepting HTTP(S) proxy with a Burp-style web interface. One Go binary, the standard library only, and a local-first AI you choose yourself.</p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/0xdak/loupe">
+        <a class="btn primary" href="demo.html"><span class="play" aria-hidden="true"></span>Try the live demo</a>
+        <a class="btn ghost" href="https://github.com/0xdak/loupe">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.7 22c.5.1.7-.2.7-.5v-2c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.6.3-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .3.3.7 1 .7 2v3c0 .3.2.6.7.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
           View on GitHub
         </a>
