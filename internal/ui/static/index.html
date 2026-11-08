@@ -16,6 +16,7 @@
     <button data-tab="intruder">Intruder</button>
     <button data-tab="repeater">Repeater</button>
     <button data-tab="decoder">Decoder</button>
+    <button data-tab="extensions" id="extTabBtn" hidden>Extensions<span class="count" id="extCount"></span></button>
   </nav>
   <button class="claude-tab" id="askTop" title="Claude conversations">✦ Claude<span class="count"></span></button>
   <div class="spacer"></div>
@@ -299,6 +300,57 @@
     <div class="spacer"></div><button id="decReset">Clear</button></div>
   <div class="dec" id="decList"></div>
 </section>
+
+<!-- ═════════════ Extensions ═════════════ -->
+<section class="tab" id="tab-extensions" hidden>
+  <nav class="tabs subtabs">
+    <button data-sub="x-issues" class="active">Issues<span class="count" id="xIssueCount"></span></button>
+    <button data-sub="x-installed">Installed</button>
+  </nav>
+
+  <!-- Issues -->
+  <div class="sub x-issues" id="x-issues">
+    <div class="filterbar">
+      <span class="muted">Filter:</span>
+      <input type="search" id="xFilter" placeholder="Search issue, host, severity, extension…" autocomplete="off">
+      <div class="spacer"></div>
+      <span class="muted" id="xCount"></span>
+      <button id="xClear" title="Clear every reported issue">Clear</button>
+    </div>
+    <div class="grid-wrap" id="xWrap">
+      <table class="grid" id="xTable">
+        <colgroup>
+          <col style="width:52px"><col style="width:92px"><col><col style="width:140px"><col style="width:26%"><col style="width:60px"><col style="width:84px">
+        </colgroup>
+        <thead><tr>
+          <th class="sort" data-key="id" data-dir="desc">#</th><th class="sort" data-key="sev">Severity</th>
+          <th class="sort" data-key="name">Issue</th><th class="sort" data-key="ext">Extension</th>
+          <th class="sort" data-key="url">Host / URL</th><th class="sort" data-key="flow">Flow</th>
+          <th class="sort" data-key="time">Time</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="xEmpty">
+        <p><b>No issues yet.</b></p>
+        <p>Enable an extension in <b>Installed</b>, then browse your target through loupe. Passive extensions report findings here as traffic goes by.</p>
+      </div>
+    </div>
+    <div class="x-detail" id="xDetail"></div>
+  </div>
+
+  <!-- Installed -->
+  <div class="sub page" id="x-installed" hidden>
+    <div class="section">
+      <h3>Extensions</h3>
+      <p>Extensions are separate programs that watch your traffic and report issues. They speak a tiny JSON protocol over stdio, so anyone can write one in any language.
+        Loupe never downloads or runs one on its own — you enable each one here.</p>
+      <p class="muted small">Drop an extension folder (with a <code>manifest.json</code>) into <code id="xDir">the extensions directory</code>, then Rescan.
+        See <code>internal/ext</code> in the repo for the protocol and the bundled <code>passive-scan</code> example.</p>
+      <p><button class="btn" id="xReload">Rescan folder</button></p>
+      <div id="xList" class="x-list"></div>
+    </div>
+  </div>
+</section>
 </main>
 
 <div class="ctxmenu" id="menu" hidden></div>
@@ -342,6 +394,12 @@
   </div>
   <p class="muted small" id="aiHint"></p>
   <div class="actions"><button id="aiCancel">Cancel</button><button id="aiOk" class="primary">Save</button></div>
+</dialog>
+
+<dialog id="xLogDialog" class="wide">
+  <h3 id="xLogTitle">Logs</h3>
+  <pre id="xLogBody" class="x-log"></pre>
+  <div class="actions"><button id="xLogClose" class="primary">Close</button></div>
 </dialog>
 
 <dialog id="ruleDialog">
@@ -429,6 +487,7 @@
 <script src="js/repeater.js"></script>
 <script src="js/intruder.js"></script>
 <script src="js/decoder.js"></script>
+<script src="js/ext.js"></script>
 <script src="js/assist.js"></script>
 <script src="js/app.js"></script>
 </body>

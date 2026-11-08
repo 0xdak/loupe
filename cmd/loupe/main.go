@@ -26,6 +26,7 @@ import (
 
 	"loupe/internal/assist"
 	"loupe/internal/ca"
+	"loupe/internal/ext"
 	"loupe/internal/flow"
 	"loupe/internal/history"
 	"loupe/internal/intercept"
@@ -150,6 +151,11 @@ func runProxy(args []string) int {
 		filepath.Join(*caDir, "ai.json"),
 	)
 
+	// Extensions are third-party programs the tester installs under the config
+	// directory and enables deliberately; none run until turned on in the UI.
+	extMgr := ext.NewManager(filepath.Join(*caDir, "extensions"))
+	defer extMgr.Close()
+
 	var uiURL string
 	if *uiAddr != "" {
 		uiLn, err := net.Listen("tcp", *uiAddr)
@@ -165,7 +171,7 @@ func runProxy(args []string) int {
 				ProxyAddr: proxyAddr, OpenBrowser: startBrowser, CACert: caPEM,
 				Intercept: queue, Scope: sc, Sender: p, Rules: engine,
 				Intruder: intruder.NewManager(p), WebSockets: wsStore,
-				Assistant: aiMgr, AI: aiMgr,
+				Assistant: aiMgr, AI: aiMgr, Extensions: extMgr,
 			}),
 			ReadHeaderTimeout: 30 * time.Second,
 			ErrorLog:          errLog,

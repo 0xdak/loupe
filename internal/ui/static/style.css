@@ -319,3 +319,36 @@ button:focus:not(:focus-visible), .tree .node:focus:not(:focus-visible) { outlin
 .poc-card-host { position: fixed; left: -10000px; top: 0; width: 720px; pointer-events: none; }
 .poc-frameHost { max-width: 760px; }
 .poc-iframe { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+
+/* ── Extensions tab ── */
+.x-issues { display: flex; flex-direction: column; min-height: 0; }
+.x-issues #xWrap { flex: 1; min-height: 0; }
+.x-detail { height: 190px; overflow: auto; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--panel); }
+.x-detail:empty::before { content: "Select an issue to see its detail and evidence."; color: var(--muted); }
+.x-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.x-detail-url { font: 12px/1.4 var(--mono); color: var(--accent-text); word-break: break-all; margin-bottom: 8px; }
+.x-detail-body { margin: 0 0 10px; line-height: 1.5; }
+.x-ev { margin: 0; padding: 8px 10px; background: var(--alt); border: 1px solid var(--line); border-radius: 3px;
+  font: 12px/1.45 var(--mono); white-space: pre-wrap; word-break: break-all; max-height: 90px; overflow: auto; }
+.sev { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; letter-spacing: .03em; color: #fff; }
+.sev-Info { background: #5C5550; }
+.sev-Low { background: #7A6B2E; }
+.sev-Medium { background: #9B6A1E; }
+.sev-High { background: var(--accent); }
+.sev-Critical { background: var(--accent-dark); }
+.x-list { display: flex; flex-direction: column; gap: 10px; max-width: 760px; margin-top: 6px; }
+.x-ext { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); }
+.x-ext.on { border-color: var(--accent); }
+.x-ext-toggle { margin-top: 2px; }
+.x-ext-main { flex: 1; min-width: 0; }
+.x-ext-top { display: flex; align-items: center; gap: 6px; }
+.x-ext-desc { margin-top: 3px; line-height: 1.45; }
+.x-ext-meta { margin-top: 4px; font-family: var(--mono); }
+.x-ext-err { margin-top: 6px; color: var(--accent-text); font-size: 12px; }
+.x-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 4px; }
+.x-dot.run { background: #3FB950; }
+.x-dot.off { background: var(--muted); }
+.x-dot.err { background: var(--accent); }
+dialog.wide { width: min(760px, 92vw); }
+.x-log { margin: 0; max-height: 50vh; overflow: auto; padding: 10px 12px; background: var(--alt); border: 1px solid var(--line);
+  border-radius: 3px; font: 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; }

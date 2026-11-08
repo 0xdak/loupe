@@ -51,6 +51,8 @@ $("themeBtn").addEventListener("click", () => {
     for (const el of [$("proxyAddr"), ...$$(".proxyAddr")]) el.textContent = info.proxy;
     for (const b of $$(".browserBtn")) b.hidden = !info.browser;
     $("caSection").hidden = !info.mitm;
+    $("extTabBtn").hidden = !info.extensions;
+    if (info.extensions) loadExtData();
     app.scope = scope.patterns || [];
     emit("scopeChanged");
     await initProxy();

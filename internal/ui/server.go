@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"loupe/internal/assist"
+	"loupe/internal/ext"
 	"loupe/internal/flow"
 	"loupe/internal/history"
 	"loupe/internal/intercept"
@@ -47,6 +48,9 @@ type Options struct {
 	Rules      *rules.Engine     // match and replace
 	Intruder   *intruder.Manager // nil disables Intruder
 	WebSockets *websocket.Store  // nil disables WebSockets history
+	// Extensions runs third-party extensions and collects their issues. Nil
+	// disables the Extensions tab.
+	Extensions *ext.Manager
 	// Assistant answers questions about an exchange. Nil disables the
 	// assistant; AssistantErr then says why. AssistantName labels the active
 	// model in the interface (e.g. "Claude", "Ollama · qwen2.5").
@@ -126,8 +130,23 @@ func New(store *history.Store, opts Options) *Server {
 	m.HandleFunc("POST /api/assist", s.assist)
 	m.HandleFunc("GET /api/ai", s.getAI)
 	m.HandleFunc("PUT /api/ai", s.putAI)
+	if opts.Extensions != nil {
+		m.HandleFunc("GET /api/ext", s.listExt)
+		m.HandleFunc("POST /api/ext/reload", s.reloadExt)
+		m.HandleFunc("GET /api/ext/issues", s.listIssues)
+		m.HandleFunc("DELETE /api/ext/issues", s.clearIssues)
+		m.HandleFunc("PUT /api/ext/{name}", s.setExt)
+		m.HandleFunc("GET /api/ext/{name}/logs", s.extLogs)
+	}
 
 	store.Subscribe(func(f *flow.Flow) { s.broadcastJSON("", s.summarize(f)) })
+	if opts.Extensions != nil {
+		store.Subscribe(opts.Extensions.Feed)
+		opts.Extensions.SetHooks(
+			func(is *ext.Issue) { s.broadcastJSON("issue", is) },
+			func() { s.broadcastJSON("ext", opts.Extensions.List()) },
+		)
+	}
 	opts.Intercept.Subscribe(func() { s.broadcastJSON("intercept", opts.Intercept.State()) })
 	if opts.Intruder != nil {
 		opts.Intruder.Subscribe(func(a *intruder.Attack, r *intruder.Result) {
@@ -275,7 +294,7 @@ func (s *Server) info(w http.ResponseWriter, r *http.Request) {
 		"proxy": s.opts.ProxyAddr, "browser": s.opts.OpenBrowser != nil, "mitm": s.opts.CACert != nil,
 		"intruder": s.opts.Intruder != nil, "websockets": s.opts.WebSockets != nil, "rules": s.opts.Rules != nil,
 		"assistant": available, "assistantError": aerr, "assistantName": name,
-		"aiConfigurable": s.opts.AI != nil,
+		"aiConfigurable": s.opts.AI != nil, "extensions": s.opts.Extensions != nil,
 	})
 }
 

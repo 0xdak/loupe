@@ -1,0 +1,9 @@
+{
+  "name": "passive-scan",
+  "version": "1.0.0",
+  "author": "loupe",
+  "description": "Passively flags missing security headers, reflected parameters, insecure cookies and exposed secrets as responses go by.",
+  "events": ["http.response"],
+  "command": "python",
+  "args": ["main.py"]
+}

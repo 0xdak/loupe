@@ -361,7 +361,7 @@ function connectEvents() {
   es.onopen = () => { $("live").textContent = "live"; $("live").classList.add("on"); emit("open"); };
   es.onerror = () => { $("live").textContent = "disconnected"; $("live").classList.remove("on"); };
   es.onmessage = (e) => emit("flow", JSON.parse(e.data));
-  for (const name of ["intercept", "scope", "intruder", "ws"]) es.addEventListener(name, (e) => emit(name, JSON.parse(e.data)));
+  for (const name of ["intercept", "scope", "intruder", "ws", "issue", "ext"]) es.addEventListener(name, (e) => emit(name, JSON.parse(e.data)));
 }
 
 // ── Shared state and actions ──
