@@ -42,7 +42,7 @@ button{font-family:var(--mono); letter-spacing:-0.01em}
 .mark svg{width:22px; height:22px; display:block}
 .mark .wm{font-family:var(--display); font-weight:800; font-size:1.12rem; letter-spacing:.02em}
 .mark .tag{color:var(--phos); font-size:.72rem; letter-spacing:.18em; font-weight:600}
-.sess{display:flex; gap:22px; align-items:center; color:var(--ink-2); font-size:.74rem; letter-spacing:.06em}
+.sess{display:flex; gap:22px; align-items:center; color:var(--ink-2); font-size:.74rem; letter-spacing:.03em}
 .sess .k{color:var(--ink-3)}
 .sess b{color:var(--ink); font-weight:600}
 .dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--ok); margin-right:7px}
@@ -80,7 +80,7 @@ button{font-family:var(--mono); letter-spacing:-0.01em}
 .tablewrap{flex:1; min-height:0; overflow:auto}
 table.grid{width:100%; border-collapse:collapse; font-size:.8rem; background:var(--panel)}
 table.grid th{position:sticky; top:0; background:var(--sink); text-align:left; font-weight:600; color:var(--ink-3);
-  font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; padding:9px 14px; border-bottom:1px solid var(--line-2); z-index:1}
+  font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; padding:9px 14px; border-bottom:1px solid var(--line-2); z-index:1}
 table.grid td{padding:8px 14px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink-2)}
 table.grid tr{cursor:pointer}
 table.grid tbody tr:hover{background:var(--bg2)}
@@ -99,7 +99,7 @@ tr.star td.u::after{content:"  ◂ reflected"; color:var(--phos-2); font-size:.7
 .split{flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line)}
 @media(max-width:800px){.split{grid-template-columns:1fr; grid-template-rows:1fr 1fr}}
 .view{display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--panel)}
-.view .vh{padding:8px 15px; border-bottom:1px solid var(--line); font-size:.68rem; font-weight:700; letter-spacing:.16em;
+.view .vh{padding:8px 15px; border-bottom:1px solid var(--line); font-size:.72rem; font-weight:700; letter-spacing:.16em;
   text-transform:uppercase; color:var(--ink-2); background:var(--bg2); display:flex; align-items:center; gap:8px}
 .view .vh::before{content:"▍"; color:var(--phos-2)}
 .view pre{margin:0; flex:1; overflow:auto; padding:14px 16px; font-family:var(--mono); font-size:.76rem; line-height:1.55;
@@ -120,7 +120,7 @@ tr.star td.u::after{content:"  ◂ reflected"; color:var(--phos-2); font-size:.7
 
 /* issues */
 .issues{flex:1; min-height:0; overflow:auto}
-.sev{display:inline-block; padding:2px 9px; border-radius:2px; font-size:.68rem; font-weight:700; letter-spacing:.08em; color:#fff}
+.sev{display:inline-block; padding:2px 9px; border-radius:2px; font-size:.72rem; font-weight:700; letter-spacing:.08em; color:#fff}
 .sev-Info{background:#5C5550}.sev-Low{background:#6E6029}.sev-Medium{background:#8A5E1A}.sev-High{background:var(--solid)}.sev-Critical{background:var(--deep)}
 
 /* poc dossier */
@@ -132,10 +132,10 @@ tr.star td.u::after{content:"  ◂ reflected"; color:var(--phos-2); font-size:.7
 .card .cbadge{display:inline-block; padding:3px 11px; background:var(--solid); color:#fff; font-weight:700; font-size:.7rem; letter-spacing:.1em}
 .card h3{font-family:var(--display); font-weight:700; font-size:1.32rem; margin:14px 0 6px; letter-spacing:.01em; color:var(--ink)}
 .card .curl{font-size:.74rem; color:var(--phos); word-break:break-all; margin-bottom:14px}
-.card .lbl{font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin:14px 0 6px; display:flex; align-items:center; gap:8px}
+.card .lbl{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin:14px 0 6px; display:flex; align-items:center; gap:8px}
 .card .lbl::before{content:"//"; color:var(--phos-2)}
 .card .blk{font-size:.74rem; line-height:1.55; color:var(--ink-2); background:var(--sink); border:1px solid var(--line); padding:12px 14px; white-space:pre-wrap; word-break:break-word; max-height:210px; overflow:auto}
-.card .foot{margin-top:16px; font-size:.7rem; color:var(--ink-3); letter-spacing:.06em}
+.card .foot{margin-top:16px; font-size:.72rem; color:var(--ink-3); letter-spacing:.03em}
 .pocbar{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap}
 
 /* AI drawer */
@@ -144,7 +144,7 @@ tr.star td.u::after{content:"  ◂ reflected"; color:var(--phos-2); font-size:.7
 .drawer.open{transform:none}
 .dh{display:flex; align-items:center; gap:9px; padding:13px 15px; border-bottom:1px solid var(--line)}
 .dh b{font-size:.84rem; letter-spacing:.06em}
-.dh .k{color:var(--ink-3); font-size:.68rem; letter-spacing:.1em}
+.dh .k{color:var(--ink-3); font-size:.72rem; letter-spacing:.1em}
 .dh .x{margin-left:auto; cursor:pointer; color:var(--ink-2); background:transparent; border:0; font-size:1.1rem; width:28px; height:28px}
 .dh .x:hover{color:var(--phos)}
 .dmsgs{flex:1; overflow:auto; padding:15px; display:flex; flex-direction:column; gap:14px}
@@ -180,7 +180,7 @@ tr.star td.u::after{content:"  ◂ reflected"; color:var(--phos-2); font-size:.7
 .alertbanner::before{content:"▌ ALERT ▐"; letter-spacing:.1em}
 .alertbanner.hide{display:none}
 
-.footnote{text-align:center; color:var(--ink-3); font-size:.7rem; letter-spacing:.06em; padding:7px; background:var(--sink); border-top:1px solid var(--line)}
+.footnote{text-align:center; color:var(--ink-3); font-size:.72rem; letter-spacing:.04em; padding:7px; background:var(--sink); border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
